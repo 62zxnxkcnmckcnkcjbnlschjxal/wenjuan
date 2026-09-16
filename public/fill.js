@@ -10,7 +10,23 @@
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
-  const surveyId = (location.pathname.match(/^\/s\/([\w-]+)/) || [])[1];
+  /* 问卷 ID 解析：兼容多种链接形态
+     1) 标准填答链接 /s/<id>
+     2) 带查询参数 ?id=<id>（防重定向丢 ID 时的兜底）
+     3) hash 形式 #/s/<id>
+   */
+  function resolveSurveyId() {
+    const p = location.pathname || '';
+    let m = p.match(/^\/s\/([\w-]+)/);
+    if (m) return m[1];
+    m = (location.search || '').match(/[?&]id=([\w-]+)/);
+    if (m) return m[1];
+    m = (location.hash || '').match(/\/s\/([\w-]+)/);
+    if (m) return m[1];
+    return null;
+  }
+
+  const surveyId = resolveSurveyId();
   let survey = null;
   let submitting = false;
 
@@ -24,7 +40,11 @@
 
   async function load() {
     if (!surveyId) {
-      $('#fillRoot').innerHTML = stateView('🔍', '链接无效', '请在链接中包含问卷 ID，例如 /s/xxxxxx');
+      $('#fillRoot').innerHTML = stateView('🔍', '链接无效', '当前地址不是 /s/问卷ID 格式，无法定位问卷。请回到问卷列表，点「🔗 链接」按钮复制完整填答链接。') +
+        '<div class="card card-pad" style="text-align:left;padding:16px 20px;margin-top:12px">' +
+        '<div style="font-size:13px;color:var(--muted);margin-bottom:6px">当前打开地址：</div>' +
+        '<code style="font-size:12.5px;word-break:break-all;color:var(--fg)">' + esc(location.href) + '</code>' +
+        '</div>';
       return;
     }
     $('#fillRoot').innerHTML = '<div class="ai-loading" style="padding:80px 0"><div class="spinner"></div>加载问卷中…</div>';

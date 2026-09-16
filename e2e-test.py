@@ -37,7 +37,7 @@ def main():
     api(f"/api/surveys/{sid}/actions", "POST", {"action": "publish"})
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path="/usr/bin/chromium-browser", args=["--no-sandbox"])
+        browser = p.chromium.launch(executable_path="/usr/local/bin/chromium", args=["--no-sandbox"])
         page = browser.new_page(viewport={"width": 1400, "height": 1000})
         page.on("console", lambda m: errors.append(f"[{m.type}] {m.text}") if m.type == "error" else None)
         page.on("pageerror", lambda e: errors.append(f"[pageerror] {e}"))

@@ -77,7 +77,7 @@ export async function createSurvey(env, data) {
 
 export async function updateSurvey(env, id, data) {
   const db = await ensureDb(env);
-  const exist = await db.prepare('SELECT * FROM surveys WHERE id = ?').bind(id).first();
+  const exist = await db.prepare('SELECT id FROM surveys WHERE id = ?').bind(id).first();
   if (!exist) return null;
   await db.prepare(
     `UPDATE surveys SET title = ?, description = ?, status = ?, end_at = ?, settings = ?, structure = ?, updated_at = ? WHERE id = ?`
