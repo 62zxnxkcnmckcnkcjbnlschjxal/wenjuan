@@ -1,0 +1,13 @@
+{
+  "name": "问卷工作台",
+  "short_name": "问卷工作台",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f3f8f7",
+  "theme_color": "#f3f8f7",
+  "description": "创建、管理、回收并分析问卷的轻量平台",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

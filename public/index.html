@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="问卷工作台">
+<meta name="theme-color" id="metaTheme" content="#f1f7f5">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<title>问卷工作台 · 创建/管理/分析问卷</title>
+<link rel="stylesheet" href="/style.css">
+<script>
+(function(){try{
+  var d=(localStorage.getItem('qwDark')==='1')||(localStorage.getItem('qwDark')===null&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if(d)document.documentElement.classList.add('dark');
+  var t=document.querySelector('meta[name=theme-color]');
+  if(t)t.setAttribute('content',d?'#0d1412':'#f1f7f5');
+}catch(e){}})();
+</script>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="logo" onclick="location.hash='#/'" style="cursor:pointer">
+        <div class="logo-badge">卷</div>
+        <span>问卷工作台</span>
+      </div>
+      <div class="header-spacer"></div>
+      <button class="btn btn-ghost btn-sm hide-sm" id="navAiBtn" onclick="location.hash='#/ai'">✨ AI 生成</button>
+      <button class="btn btn-ghost btn-sm" id="navHomeBtn" onclick="location.hash='#/'">问卷列表</button>
+      <button class="icon-btn" id="themeToggle" title="切换深浅色">◐</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 仪表盘 -->
+    <section class="page" id="view-dashboard">
+      <div class="page-head">
+        <div>
+          <h1>我的问卷</h1>
+          <div class="sub">创建、回收、分析，一站式完成</div>
+        </div>
+        <div class="right">
+          <button class="btn btn-soft" onclick="location.hash='#/ai'">✨ AI 一键生成</button>
+          <button class="btn btn-primary" onclick="App.createBlank()">＋ 新建问卷</button>
+        </div>
+      </div>
+      <div class="stat-grid" id="statGrid"></div>
+      <div id="surveyList"></div>
+    </section>
+
+    <!-- AI 生成 -->
+    <section class="page" id="view-ai" style="display:none">
+      <div class="page-head">
+        <div>
+          <h1>AI 一键生成问卷</h1>
+          <div class="sub">告诉 AI 你想收集什么，它会联网检索资料并自动设计整份问卷</div>
+        </div>
+      </div>
+      <div class="ai-gen-card">
+        <div class="ai-banner" id="aiBanner"></div>
+        <label class="field">
+          <span class="f-label">你想收集什么内容？</span>
+          <textarea class="textarea topic-input" id="aiTopic" placeholder="例如：我想收集一个《光遇》游戏产品玩法的问卷，了解玩家对游戏玩法、社交系统、氪金内容的满意度与建议"></textarea>
+        </label>
+        <div class="gen-options">
+          <label class="opt"><input type="checkbox" id="aiSearch" checked> 先联网检索相关资料（尽力而为）</label>
+          <label class="opt">题目数量
+            <select class="select" id="aiCount">
+              <option value="5">5 题</option>
+              <option value="8" selected>8 题</option>
+              <option value="10">10 题</option>
+              <option value="12">12 题</option>
+              <option value="15">15 题</option>
+            </select>
+          </label>
+        </div>
+        <button class="btn btn-primary btn-lg" id="aiGenBtn" onclick="App.aiGenerate()">一键生成问卷</button>
+        <div id="aiResult"></div>
+      </div>
+    </section>
+
+    <!-- 编辑器 -->
+    <section class="page" id="view-editor" style="display:none">
+      <div class="page-head" id="editorHead"></div>
+      <div class="editor-grid">
+        <div class="editor-left" id="editorLeft"></div>
+        <div class="editor-right">
+          <div class="card preview-pane">
+            <div class="fill-wrap" id="editorPreview"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 结果页 -->
+    <section class="page" id="view-results" style="display:none">
+      <div id="resultsBody"></div>
+    </section>
+  </main>
+</div>
+
+<!-- 锁屏 -->
+<div class="lock-screen" id="lockScreen" style="display:none">
+  <div class="lock-card">
+    <div class="logo-badge">卷</div>
+    <h1>问卷工作台</h1>
+    <div class="sub">此后台已启用访问验证，请输入管理密码</div>
+    <div class="err" id="lockErr"></div>
+    <input class="input" type="password" id="lockPwd" placeholder="管理密码" autocomplete="current-password">
+    <button class="btn btn-primary" id="lockBtn" style="width:100%">进入工作台</button>
+  </div>
+</div>
+
+<div id="toast-wrap"></div>
+
+<script src="/renderer.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
