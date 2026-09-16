@@ -357,4 +357,35 @@ table.res-table{border-collapse:collapse;width:100%;font-size:13px;min-width:640
   .hide-sm{display:none}
   .fill-body{padding:10px 16px 18px}
   .fill-head{padding:18px 16px}
+  /* 填答页移动端优化 */
+  .fill-wrap{border-radius:var(--radius-md)}
+  .fill-head h2{font-size:17px}
+  .fill-head .fill-desc{font-size:13px}
+  .fq{padding:14px 0}
+  .fq-title{font-size:14.5px;margin-bottom:10px}
+  .fq-opts{gap:2px}
+  .fq-opt{padding:10px 0;font-size:14px;gap:12px}
+  .fq-opt input{width:19px;height:19px;margin-top:1px;flex:none}
+  .fq-opt .txt-other input{font-size:16px;padding:8px 10px}
+  .star-btn{width:44px;height:44px;font-size:18px;border-radius:12px}
+  .fq-rating{gap:6px}
+  .fq-date input{width:100%;font-size:16px;padding:10px 12px}
+  .fq .textarea{font-size:16px;min-height:70px;padding:10px 12px}
+  .fq-select{font-size:16px;padding:10px 34px 10px 12px}
+  .other-dropdown{font-size:16px;padding:8px 10px}
+  .fq-opt .other-input{font-size:16px;padding:8px 10px}
+  #submitBtn{width:100%;min-width:auto;max-width:none;border-radius:12px}
+  .fq.invalid{padding-left:12px;padding-right:12px}
+  #fillRoot .card.card-pad{padding:40px 20px}
+  body{padding-bottom:env(safe-area-inset-bottom)}
+}
+@media (max-width:390px){
+  .fill-head{padding:14px 12px}
+  .fill-body{padding:8px 12px 14px}
+  .fq{padding:12px 0}
+  .fq-title{font-size:14px;margin-bottom:8px}
+  .star-btn{width:40px;height:40px;font-size:16px;border-radius:10px}
+  .fq-rating{gap:5px}
+  #submitBtn{padding:12px 18px;font-size:14.5px}
+  #fillRoot .card.card-pad{padding:32px 16px}
 }

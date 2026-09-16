@@ -247,7 +247,7 @@
       '<button class="btn btn-soft btn-sm" data-act="edit">编辑</button>' +
       '<button class="btn btn-ghost btn-sm" data-act="results">结果</button>' +
       (s.status === 'published'
-        ? '<button class="btn btn-ghost btn-sm" data-act="close">结束</button>'
+        ? '<button class="btn btn-ghost btn-sm" data-act="copylink" title="复制填答链接">🔗 链接</button><button class="btn btn-ghost btn-sm" data-act="close">结束</button>'
         : '<button class="btn btn-primary btn-sm" data-act="publish">发布</button>') +
       '<button class="btn btn-ghost btn-sm" data-act="duplicate" title="复制为草稿">复制</button>' +
       '<button class="icon-btn danger" data-act="delete" title="删除">✕</button>' +
@@ -257,6 +257,16 @@
   async function handleRowAction(s, act) {
     if (act === 'edit') { location.hash = '#/edit/' + s.id; return; }
     if (act === 'results') { location.hash = '#/results/' + s.id; return; }
+    if (act === 'copylink') {
+      const link = location.origin + '/s/' + s.id;
+      try {
+        await navigator.clipboard.writeText(link);
+        toast('填答链接已复制', 'ok');
+      } catch (e) {
+        showLinkModal(link);
+      }
+      return;
+    }
     try {
       if (act === 'publish') {
         if (!s.structure || !s.structure.length) {
@@ -286,6 +296,30 @@
     } catch (e) {
       toast(e.message, 'err');
     }
+  }
+
+  function showLinkModal(link) {
+    const mask = document.createElement('div');
+    mask.className = 'modal-mask';
+    mask.innerHTML =
+      '<div class="modal"><h3>复制填答链接</h3>' +
+      '<div class="m-sub">请手动复制下方链接</div>' +
+      '<input class="input" id="linkCopyInput" value="' + esc(link) + '" readonly style="width:100%;margin:10px 0">' +
+      '<div class="m-actions">' +
+      '<button class="btn btn-primary" data-act="copy">选中并复制</button>' +
+      '<button class="btn btn-ghost" data-act="close">关闭</button>' +
+      '</div></div>';
+    document.body.appendChild(mask);
+    const input = $('#linkCopyInput', mask);
+    input.focus();
+    input.select();
+    mask.addEventListener('click', (e) => {
+      if (e.target === mask || e.target.closest('[data-act="close"]')) { mask.remove(); }
+      else if (e.target.closest('[data-act="copy"]')) {
+        input.select();
+        try { document.execCommand('copy'); toast('链接已复制', 'ok'); mask.remove(); } catch (err) { toast('复制失败，请手动复制', 'err'); }
+      }
+    });
   }
 
   /* ---------------- 新建 / 编辑 ---------------- */
@@ -635,6 +669,7 @@
     if (!s.structure.length) { toast('请先添加题目再发布', 'err'); return; }
     try {
       await api('/api/surveys/' + s.id + '/actions', { method: 'POST', body: { action: 'publish' } });
+      state.editing.status = 'published';
       toast('发布成功！可复制填答链接分享', 'ok');
       renderEditor();
     } catch (e) {
@@ -646,6 +681,7 @@
     const s = state.editing;
     try {
       await api('/api/surveys/' + s.id + '/actions', { method: 'POST', body: { action: 'close' } });
+      state.editing.status = 'closed';
       toast('问卷已结束', 'ok');
       renderEditor();
     } catch (e) {
@@ -665,7 +701,7 @@
       await navigator.clipboard.writeText(link);
       toast('填答链接已复制', 'ok');
     } catch (e) {
-      prompt('复制填答链接：', link);
+      showLinkModal(link);
     }
   }
 
@@ -854,6 +890,8 @@
   /* ---------------- AI 分析 ---------------- */
   async function aiAnalyze() {
     const { survey } = state.results;
+    const old = $('#aiPanel');
+    if (old) old.remove();
     const panel = document.createElement('div');
     panel.className = 'ai-panel';
     panel.id = 'aiPanel';
@@ -964,6 +1002,7 @@
           settings: { submitTip: '提交成功，感谢参与！' }
         }
       });
+      btn.disabled = false;
       toast(publish ? '已创建并发布' : '已保存为草稿', 'ok');
       location.hash = '#/edit/' + data.survey.id;
     } catch (e) {
