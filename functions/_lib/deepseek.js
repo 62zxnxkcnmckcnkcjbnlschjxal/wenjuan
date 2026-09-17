@@ -46,7 +46,7 @@ export async function chat(env, messages, opts = {}) {
     stream: false
   };
   if (opts.json) body.response_format = { type: 'json_object' };
-  const res = await fetch(p.base + '/chat/completions', {
+  const res = await fetch(p.base + '/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
