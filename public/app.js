@@ -170,6 +170,9 @@
     } else if (hash.startsWith('#/ai')) {
       $('#view-ai').style.display = 'block';
       refreshAiStatus();
+    } else if (hash.startsWith('#/links')) {
+      $('#view-links').style.display = 'block';
+      if (window.__loadLinks) { try { window.__loadLinks(); } catch (e) {} }
     } else {
       $('#view-dashboard').style.display = 'block';
       loadDashboard();
@@ -177,7 +180,7 @@
   }
 
   function hideAll() {
-    ['view-dashboard', 'view-ai', 'view-editor', 'view-results'].forEach(id => {
+    ['view-dashboard', 'view-ai', 'view-editor', 'view-results', 'view-links'].forEach(id => {
       $('#' + id).style.display = 'none';
     });
   }

@@ -31,6 +31,7 @@
       </div>
       <div class="header-spacer"></div>
       <button class="btn btn-ghost btn-sm hide-sm" id="navAiBtn" onclick="location.hash='#/ai'">✨ AI 生成</button>
+      <button class="btn btn-ghost btn-sm hide-sm" id="navLinksBtn" onclick="location.hash='#/links'">🔗 友链</button>
       <button class="btn btn-ghost btn-sm" id="navHomeBtn" onclick="location.hash='#/'">问卷列表</button>
       <button class="icon-btn" id="themeToggle" title="切换深浅色">◐</button>
     </div>
@@ -100,6 +101,22 @@
     <!-- 结果页 -->
     <section class="page" id="view-results" style="display:none">
       <div id="resultsBody"></div>
+    </section>
+
+    <!-- 友链（读主站 FF大王博客，自动同步） -->
+    <section class="page" id="view-links" style="display:none">
+      <div class="page-head">
+        <div>
+          <h1>友链</h1>
+          <div class="sub">来自主站 FF大王博客 · 云端同步 · 点击直达</div>
+        </div>
+      </div>
+      <div class="link-src-row">
+        <input class="input" type="url" id="linksSrcInput" placeholder="主站友链地址（默认 ffdaz-blog.pages.dev/api/links）">
+        <button class="btn btn-soft" id="linksSrcSave">保存</button>
+      </div>
+      <div class="link-hint" id="linksSrcHint">主站新增友链后，这里自动同步显示。</div>
+      <div class="link-list" id="linkList"></div>
     </section>
   </main>
 </div>
@@ -213,5 +230,64 @@
 </script>
 <script src="/renderer.js"></script>
 <script src="/app.js"></script>
+<script>
+/* ===== 友链（读主站 FF大王博客 /api/links，自动同步） ===== */
+(function(){
+  var SRC_LS='qwLinksSrc';
+  var DEF_SRC='https://ffdaz-blog.pages.dev/api/links';
+  function srcBase(){
+    try{ var v=String(localStorage.getItem(SRC_LS)||'').trim(); if(v) return v.replace(/\/+$/,''); }catch(e){}
+    return DEF_SRC;
+  }
+  function logoInfo(url){
+    try{ var u=new URL(url); var d=u.hostname.replace(/^www\./,'');
+      return { primary:'https://'+d+'/favicon.ico', fallback:'https://icons.duckduckgo.com/ip3/'+d+'.ico', initial:(d.charAt(0)||'?').toUpperCase() };
+    }catch(e){ return null; }
+  }
+  function loadLinks(){
+    var box=document.getElementById('linkList');
+    var hint=document.getElementById('linksSrcHint');
+    var inp=document.getElementById('linksSrcInput');
+    if(!box) return;
+    if(inp && !inp.value) inp.value=srcBase();
+    if(hint) hint.textContent='正在从主站读取友链…';
+    box.innerHTML='<div class="link-empty">正在从主站读取友链…</div>';
+    fetch(srcBase(),{method:'GET'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(d){
+        var list=Array.isArray(d&&d.links)?d.links:[];
+        if(!list.length){ if(hint) hint.textContent='主站已连接，当前暂无友链。'; box.innerHTML='<div class="link-empty">主站暂无友链，去主站添加后会同步到这里。</div>'; return; }
+        if(hint) hint.textContent='已同步主站 '+list.length+' 条友链 · 自动跟随更新。';
+        box.innerHTML=list.map(function(l){
+          var info=logoInfo(l.url);
+          var img=info
+            ? '<span class="link-logo-wrap"><img class="link-logo" src="'+info.primary+'" alt="" loading="lazy" onerror="this.style.display=\'none\';var p=this.nextElementSibling;if(p)p.style.display=\'flex\';"><span class="link-logo-fb" style="display:none">'+info.initial+'</span></span>'
+            : '<span class="link-logo-wrap"><span class="link-logo-fb">?</span></span>';
+          return '<a class="link-item" href="'+String(l.url).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" target="_blank" rel="noopener nofollow">'+img+
+            '<span class="link-mid"><span class="link-title"></span><span class="link-url"></span></span></a>';
+        }).join('');
+        box.querySelectorAll('.link-item').forEach(function(a,i){
+          var t=a.querySelector('.link-title'); if(t) t.textContent=list[i].title;
+          var u=a.querySelector('.link-url'); if(u) u.textContent=String(list[i].url).replace(/^https?:\/\//,'');
+        });
+      })
+      .catch(function(e){
+        if(hint) hint.textContent='读取失败：'+e.message+'。请确认主站地址正确且已部署。';
+        box.innerHTML='<div class="link-empty">读取失败：'+e.message+'<br>请检查主站地址是否正确、主站是否已部署。</div>';
+      });
+  }
+  var save=document.getElementById('linksSrcSave');
+  var inp=document.getElementById('linksSrcInput');
+  if(save && inp){
+    save.addEventListener('click',function(){
+      var v=String(inp.value||'').trim().replace(/\/+$/,'');
+      if(!v) return;
+      try{ localStorage.setItem(SRC_LS,v); }catch(e){}
+      loadLinks();
+    });
+  }
+  window.__loadLinks=loadLinks;
+})();
+</script>
 </body>
 </html>

@@ -388,3 +388,18 @@ table.res-table{border-collapse:collapse;width:100%;font-size:13px;min-width:640
 .notice-foot input{accent-color:#0B7A70;cursor:pointer}
 .notice-btn{border:0;border-radius:12px;padding:9px 20px;font-size:14px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#2FC58A,#0B7A70);color:#fff;transition:opacity .15s}
 .notice-btn:hover{opacity:.88}
+
+/* ===== 友链 ===== */
+.link-src-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
+.link-src-row .input{flex:1;min-width:200px}
+.link-hint{font-size:12px;color:var(--muted);margin-bottom:14px}
+.link-list{display:flex;flex-direction:column;gap:8px}
+.link-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--card);text-decoration:none;color:var(--text);transition:all .15s;box-shadow:var(--shadow-sm)}
+.link-item:hover{border-color:var(--primary);background:var(--primary-soft);transform:translateY(-1px)}
+.link-logo-wrap{width:36px;height:36px;border-radius:10px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.link-logo{width:20px;height:20px;object-fit:contain;display:block}
+.link-logo-fb{font-size:14px;font-weight:700;color:var(--primary-deep);display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.link-mid{flex:1;min-width:0}
+.link-title{display:block;font-size:14.5px;font-weight:600}
+.link-url{display:block;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.link-empty{text-align:center;padding:40px 16px;font-size:13px;color:var(--muted)}
