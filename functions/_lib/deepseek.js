@@ -9,7 +9,8 @@ const TENCENT = { base: 'https://tokenhub.tencentmaas.com', envKey: 'TENCENT_API
 // TokenHub API 模型名规范化（控制台服务ID deepseek/deepseek-flash → API deepseek-v4-flash，否则 400）
 const TENCENT_MODEL_ALIAS = {
   'deepseek/deepseek-flash': 'deepseek-v4-flash',
-  'deepseek-flash': 'deepseek-v4-flash'
+  'deepseek-flash': 'deepseek-v4-flash',
+  'deepseek/deepseek-v4-flash-vision-exp': 'deepseek-v4-flash-vision-exp'
 };
 function normalizeModel(provider, model) {
   if (provider !== 'tencent') return model;
