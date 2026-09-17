@@ -118,6 +118,99 @@
 
 <div id="toast-wrap"></div>
 
+<!-- 跨站公告弹窗（公告源：FF大王博客，只读） -->
+<div class="notice-mask" id="noticeMask">
+  <div class="notice-card" role="dialog" aria-modal="true">
+    <div class="notice-head">
+      <span class="notice-badge"></span>
+      <div class="notice-title" id="noticeTitle">更新公告</div>
+      <button class="notice-close" id="noticeClose" title="关闭">✕</button>
+    </div>
+    <div class="notice-body" id="noticeBody"></div>
+    <div class="notice-foot">
+      <label><input type="checkbox" id="noticeNotifyCb"> 每次公告更新都提醒我</label>
+      <button class="notice-btn" id="noticeOk">知道了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 跨站公告弹窗（公告源：FF大王博客 https://ffdaz-blog.pages.dev） ===== */
+(function(){
+  var SRC_LS='qwNoticeSource';
+  var SEEN_LS='qwNoticeSeen';
+  var NOTIFY_LS='qwNoticeNotify';
+  var DEF_SRC='https://ffdaz-blog.pages.dev';
+  var mask=document.getElementById('noticeMask');
+  var titleEl=document.getElementById('noticeTitle');
+  var bodyEl=document.getElementById('noticeBody');
+  var cb=document.getElementById('noticeNotifyCb');
+  var okBtn=document.getElementById('noticeOk');
+  var closeBtn=document.getElementById('noticeClose');
+  var current=null;
+
+  function srcBase(){
+    try{ var v=String(localStorage.getItem(SRC_LS)||'').trim(); if(v) return v.replace(/\/+$/,''); }catch(e){}
+    return DEF_SRC;
+  }
+  /* 简易 Markdown → HTML（够弹窗用：标题/粗体/列表/代码/引用/链接/段落） */
+  function md2html(src){
+    var s=String(src||'');
+    s=s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    s=s.replace(/```([\s\S]*?)```/g,function(m,c){ return '<pre><code>'+c.trim()+'</code></pre>'; });
+    s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+    s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s=s.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
+    s=s.replace(/^### (.*)$/gm,'<h3>$1</h3>');
+    s=s.replace(/^## (.*)$/gm,'<h2>$1</h2>');
+    s=s.replace(/^# (.*)$/gm,'<h1>$1</h1>');
+    s=s.replace(/^[-*] (.*)$/gm,'<li>$1</li>');
+    s=s.replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g,'<ul>$1</ul>');
+    s=s.replace(/^&gt; (.*)$/gm,'<blockquote>$1</blockquote>');
+    s=s.replace(/^(?!<[hupbl]|<\/|&gt;)(.+)$/gm,'<p>$1</p>');
+    return s;
+  }
+  function keyOf(a){ return String(a.id)+'_'+(a.updatedAt||0); }
+  function shouldShow(a){
+    if(!a||!a.title) return false;
+    var key=keyOf(a), seen=null, notify=false;
+    try{ seen=localStorage.getItem(SEEN_LS); notify=localStorage.getItem(NOTIFY_LS)==='1'; }catch(e){}
+    if(seen===key) return false;
+    if(seen && !notify) return false;
+    return true;
+  }
+  function openNotice(a){
+    if(!a||!mask||!titleEl||!bodyEl) return;
+    current=a;
+    titleEl.textContent=a.title||'更新公告';
+    bodyEl.innerHTML=md2html(a.content||'');
+    try{ cb.checked=localStorage.getItem(NOTIFY_LS)==='1'; }catch(e){}
+    mask.classList.add('show');
+  }
+  function dismiss(){
+    try{
+      if(current) localStorage.setItem(SEEN_LS,keyOf(current));
+      localStorage.setItem(NOTIFY_LS,cb&&cb.checked?'1':'0');
+    }catch(e){}
+    if(mask) mask.classList.remove('show');
+  }
+  function pull(){
+    fetch(srcBase()+'/api/public-notice',{credentials:'omit'}).then(function(r){
+      if(!r.ok) throw new Error('http '+r.status);
+      return r.json();
+    }).then(function(d){
+      if(!d||!d.ok||!d.notice) return;
+      if(shouldShow(d.notice)) openNotice(d.notice);
+    }).catch(function(){});
+  }
+  if(okBtn) okBtn.addEventListener('click',dismiss);
+  if(closeBtn) closeBtn.addEventListener('click',dismiss);
+  if(mask) mask.addEventListener('click',function(ev){ if(ev.target===mask) dismiss(); });
+  document.addEventListener('keydown',function(ev){ if(ev.key==='Escape') dismiss(); });
+  /* 页面打开后延迟拉取，失败静默 */
+  setTimeout(function(){ try{ pull(); }catch(e){} }, 1400);
+})();
+</script>
 <script src="/renderer.js"></script>
 <script src="/app.js"></script>
 </body>
