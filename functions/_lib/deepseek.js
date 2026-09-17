@@ -1,10 +1,20 @@
 // DeepSeek API 客户端（服务端调用，密钥只存在于 CF 加密密文）
 // 支持双供应商：官方 api.deepseek.com（DEEPSEEK_API_KEY）+ 腾讯云 TokenHub（TENCENT_API_KEY）
-// 自动回退：官方 key 未配置时使用腾讯云 deepseek/deepseek-flash
+// 自动回退：官方 key 未配置时使用腾讯云 deepseek-v4-flash
 import { extractJson } from './util.js';
 
 const OFFICIAL = { base: 'https://api.deepseek.com', envKey: 'DEEPSEEK_API_KEY', model: 'deepseek-chat' };
-const TENCENT = { base: 'https://tokenhub.tencentmaas.com', envKey: 'TENCENT_API_KEY', model: 'deepseek/deepseek-flash' };
+const TENCENT = { base: 'https://tokenhub.tencentmaas.com', envKey: 'TENCENT_API_KEY', model: 'deepseek-v4-flash' };
+
+// TokenHub API 模型名规范化（控制台服务ID deepseek/deepseek-flash → API deepseek-v4-flash，否则 400）
+const TENCENT_MODEL_ALIAS = {
+  'deepseek/deepseek-flash': 'deepseek-v4-flash',
+  'deepseek-flash': 'deepseek-v4-flash'
+};
+function normalizeModel(provider, model) {
+  if (provider !== 'tencent') return model;
+  return TENCENT_MODEL_ALIAS[model] || model;
+}
 
 function getKey(env, p) {
   const v = env && env[p.envKey];
@@ -28,7 +38,7 @@ export async function chat(env, messages, opts = {}) {
     throw new Error('服务器未配置 API 密钥，请先在 Cloudflare 设置加密密文（DEEPSEEK_API_KEY 或 TENCENT_API_KEY）');
   }
   const body = {
-    model: opts.model || p.model,
+    model: normalizeModel(p === TENCENT ? 'tencent' : 'deepseek', opts.model || p.model),
     messages,
     temperature: opts.temperature != null ? opts.temperature : 0.7,
     max_tokens: opts.maxTokens || 4096,
