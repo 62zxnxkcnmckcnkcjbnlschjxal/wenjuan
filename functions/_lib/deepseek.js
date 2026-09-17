@@ -1,32 +1,45 @@
-// DeepSeek API 客户端（服务端调用，密钥只存在于 CF 加密密文 DEEPSEEK_API_KEY）
+// DeepSeek API 客户端（服务端调用，密钥只存在于 CF 加密密文）
+// 支持双供应商：官方 api.deepseek.com（DEEPSEEK_API_KEY）+ 腾讯云 TokenHub（TENCENT_API_KEY）
+// 自动回退：官方 key 未配置时使用腾讯云 deepseek/deepseek-flash
 import { extractJson } from './util.js';
 
-const BASE = 'https://api.deepseek.com';
-const MODEL = 'deepseek-chat';
+const OFFICIAL = { base: 'https://api.deepseek.com', envKey: 'DEEPSEEK_API_KEY', model: 'deepseek-chat' };
+const TENCENT = { base: 'https://tokenhub.tencentmaas.com', envKey: 'TENCENT_API_KEY', model: 'deepseek/deepseek-flash' };
+
+function getKey(env, p) {
+  const v = env && env[p.envKey];
+  return (v && typeof v === 'string' && v.trim()) ? v.trim() : '';
+}
 
 export function hasKey(env) {
-  const k = env && env.DEEPSEEK_API_KEY;
-  return !!(k && typeof k === 'string' && k.startsWith('sk-'));
+  return !!(getKey(env, OFFICIAL) || getKey(env, TENCENT));
+}
+
+// 选择供应商：显式 provider，或官方优先（自动）
+function pickProvider(env, provider) {
+  if (provider === 'tencent') return getKey(env, TENCENT) ? TENCENT : null;
+  if (provider === 'deepseek') return getKey(env, OFFICIAL) ? OFFICIAL : null;
+  return getKey(env, OFFICIAL) ? OFFICIAL : (getKey(env, TENCENT) ? TENCENT : null);
 }
 
 export async function chat(env, messages, opts = {}) {
-  const key = env.DEEPSEEK_API_KEY;
-  if (!hasKey(env)) {
-    throw new Error('服务器未配置 DEEPSEEK_API_KEY，请先在 Cloudflare 设置加密密文');
+  const p = pickProvider(env, opts.provider);
+  if (!p) {
+    throw new Error('服务器未配置 API 密钥，请先在 Cloudflare 设置加密密文（DEEPSEEK_API_KEY 或 TENCENT_API_KEY）');
   }
   const body = {
-    model: MODEL,
+    model: opts.model || p.model,
     messages,
     temperature: opts.temperature != null ? opts.temperature : 0.7,
     max_tokens: opts.maxTokens || 4096,
     stream: false
   };
   if (opts.json) body.response_format = { type: 'json_object' };
-  const res = await fetch(BASE + '/chat/completions', {
+  const res = await fetch(p.base + '/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + key
+      'Authorization': 'Bearer ' + getKey(env, p)
     },
     body: JSON.stringify(body)
   });
@@ -47,16 +60,18 @@ export async function chatJson(env, messages, opts = {}) {
   return obj;
 }
 
-// 验证密钥有效性（balance 接口轻量快速）
+// 验证密钥有效性（官方走 balance，腾讯走 /v1/models）
 export async function verifyKey(env) {
-  const key = env.DEEPSEEK_API_KEY;
-  if (!hasKey(env)) return { ok: false, error: '未配置 DEEPSEEK_API_KEY' };
+  const p = pickProvider(env, 'deepseek') || pickProvider(env, 'tencent');
+  if (!p) return { ok: false, error: '未配置任何 API 密钥' };
+  const path = p === OFFICIAL ? '/user/balance' : '/v1/models';
   try {
-    const res = await fetch(BASE + '/user/balance', {
-      headers: { 'Authorization': 'Bearer ' + key, 'Accept': 'application/json' }
+    const res = await fetch(p.base + path, {
+      headers: { 'Authorization': 'Bearer ' + getKey(env, p), 'Accept': 'application/json' }
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return { ok: false, error: (data.error && data.error.message) || ('HTTP ' + res.status) };
+    if (p === TENCENT) return { ok: true, models: (data.data || []).length };
     const info = data && data.balance_infos && data.balance_infos[0];
     return {
       ok: true,
