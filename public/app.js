@@ -185,24 +185,25 @@
     hideAll();
     if (m) {
       if (m[1] === 'edit') {
-        $('#view-editor').style.display = 'block';
+        const ed = $('#view-editor'); if (ed) ed.style.display = 'block';
         openEditor(m[2]);
       } else {
-        $('#view-results').style.display = 'block';
+        const rs = $('#view-results'); if (rs) rs.style.display = 'block';
         openResults(m[2]);
       }
     } else if (hash.startsWith('#/ai')) {
-      $('#view-ai').style.display = 'block';
+      const ai = $('#view-ai'); if (ai) ai.style.display = 'block';
       refreshAiStatus();
     } else {
-      $('#view-dashboard').style.display = 'block';
+      const db = $('#view-dashboard'); if (db) db.style.display = 'block';
       loadDashboard();
     }
   }
 
   function hideAll() {
     ['view-dashboard', 'view-ai', 'view-editor', 'view-results'].forEach(id => {
-      $('#' + id).style.display = 'none';
+      const el = $('#' + id);
+      if (el) el.style.display = 'none';
     });
   }
 
