@@ -43,7 +43,7 @@
       $('#fillRoot').innerHTML = stateView('🔍', '链接无效', '当前地址不是 /s/问卷ID 格式，无法定位问卷。请回到问卷列表，点「🔗 链接」按钮复制完整填答链接。') +
         '<div class="card card-pad" style="text-align:left;padding:16px 20px;margin-top:12px">' +
         '<div style="font-size:13px;color:var(--muted);margin-bottom:6px">当前打开地址：</div>' +
-        '<code style="font-size:12.5px;word-break:break-all;color:var(--fg)">' + esc(location.href) + '</code>' +
+        '<code style="font-size:12.5px;word-break:break-all;color:var(--text)">' + esc(location.href) + '</code>' +
         '</div>';
       return;
     }
@@ -175,7 +175,7 @@
       '<div style="font-size:13px;color:var(--muted);margin-bottom:20px">契合度 ' + pct + '%</div>' +
       '<div style="width:100%;height:8px;background:var(--border,#eee);border-radius:99px;overflow:hidden;margin-bottom:22px">' +
       '<div style="height:100%;width:' + pct + '%;background:var(--primary,#ff4757);border-radius:99px;transition:width .8s ease"></div></div>' +
-      '<p style="font-size:15px;line-height:1.8;text-align:left;color:var(--fg,#333)">' + esc(result.desc || '') + '</p>' +
+      '<p style="font-size:15px;line-height:1.8;text-align:left;color:var(--text)">' + esc(result.desc || '') + '</p>' +
       (tagsHtml ? '<div style="margin-top:18px;text-align:center">' + tagsHtml + '</div>' : '') +
       '<div style="margin-top:28px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
       '<button class="btn btn-primary" onclick="location.reload()">再测一次</button>' +
