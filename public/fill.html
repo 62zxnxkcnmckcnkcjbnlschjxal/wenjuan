@@ -17,12 +17,57 @@
 </script>
 </head>
 <body>
-<div class="app">
+<div id="bgLayer" style="position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;opacity:0;transition:opacity .8s ease;pointer-events:none"></div>
+<div id="bgShade" style="position:fixed;inset:0;z-index:1;background:linear-gradient(180deg,rgba(241,247,245,.88),rgba(241,247,245,.94));pointer-events:none"></div>
+<div class="app" style="position:relative;z-index:2">
   <main class="container" style="max-width:720px">
     <div id="fillRoot"></div>
   </main>
 </div>
 <div id="toast-wrap"></div>
+<style>
+/* ===== 纯 CSS 动态渐变背景 ===== */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+#bgLayer {
+  background: linear-gradient(135deg, #ffdde1, #c2e9fb, #d4c5f9, #fbc2eb, #a6c1ee, #ffdde1);
+  background-size: 400% 400%;
+  animation: gradientShift 18s ease infinite;
+  opacity: 0.65 !important;
+  transition: none !important;
+}
+:root.dark #bgLayer {
+  background: linear-gradient(135deg, #2c3e50, #4a3f6b, #1e3c4e, #3d2e5c, #1a3a4a, #2c3e50);
+  background-size: 400% 400%;
+  opacity: 0.75 !important;
+}
+#bgShade {
+  background: rgba(255,255,255,0.55);
+}
+:root.dark #bgShade {
+  background: rgba(13,20,18,0.65);
+}
+</style>
+<script>
+// 纯 CSS 渐变背景，无需加载图片
+(function(){
+  // 预留：以后想加图片就把文件名填进 BG_IMGS，会作为渐变之上叠加
+  var BG_IMGS = [];
+  if(!BG_IMGS.length) return;
+  var img = BG_IMGS[Math.floor(Math.random() * BG_IMGS.length)];
+  var layer = document.getElementById('bgLayer');
+  var preload = new Image();
+  preload.onload = function(){
+    layer.style.backgroundImage = 'url(' + img + ')';
+    layer.style.backgroundSize = 'cover';
+    layer.style.backgroundPosition = 'center';
+  };
+  preload.src = img;
+})();
+</script>
 <script src="/renderer.js"></script>
 <script src="/fill.js"></script>
 </body>

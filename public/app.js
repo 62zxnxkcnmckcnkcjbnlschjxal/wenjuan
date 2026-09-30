@@ -780,8 +780,11 @@
     tableCard.className = 'card';
     tableCard.innerHTML = '<div class="card-pad"><div class="card-title">答卷明细（最多显示 500 份）</div></div>';
     const tWrap = document.createElement('div');
+    const isTest = survey.settings && survey.settings.kind === 'test' && Array.isArray(survey.settings.results) && survey.settings.results.length;
     tWrap.className = 'table-wrap';
-    tWrap.innerHTML = '<table class="res-table"><thead><tr><th>#</th><th>提交时间</th><th>IP</th><th>地点</th><th>设备/浏览器</th>' +
+    tWrap.innerHTML = '<table class="res-table"><thead><tr><th>#</th><th>提交时间</th>' +
+      (isTest ? '<th>测试结果</th>' : '') +
+      '<th>IP</th><th>地点</th><th>设备/浏览器</th>' +
       survey.structure.map((q, i) => '<th>' + esc('Q' + (i + 1)) + '</th>').join('') + '</tr></thead><tbody></tbody></table>';
     tableCard.appendChild(tWrap);
     box.appendChild(tableCard);
@@ -861,14 +864,43 @@
     return block;
   }
 
+  // 测试型问卷：根据 answers 算分，返回结果名
+  function calcTestResult(survey, answers) {
+    const settings = survey.settings || {};
+    if (settings.kind !== 'test' || !Array.isArray(settings.results)) return null;
+    const scores = {};
+    settings.results.forEach(r => { scores[r.key] = 0; });
+    (survey.structure || []).forEach(q => {
+      if (!Array.isArray(q.optionTypes)) return;
+      const ans = answers[q.id];
+      if (ans === undefined || ans === null) return;
+      const chosen = Array.isArray(ans) ? ans : [ans];
+      chosen.forEach(opt => {
+        if (opt === '' || opt === undefined || opt === null) return;
+        const idx = (q.options || []).indexOf(opt);
+        if (idx < 0) return;
+        const key = q.optionTypes[idx];
+        if (key && scores[key] !== undefined) scores[key] += 1;
+      });
+    });
+    let bestKey = settings.results[0].key;
+    settings.results.forEach(r => { if (scores[r.key] > scores[bestKey]) bestKey = r.key; });
+    return settings.results.find(r => r.key === bestKey) || settings.results[0];
+  }
+
   async function loadResponsesTable(survey, tbody) {
     try {
       const data = await api('/api/surveys/' + survey.id + '/responses?limit=500');
+      const isTest = survey.settings && survey.settings.kind === 'test';
       tbody.innerHTML = data.responses.map((r, i) => {
-        const cells = ['<td>' + (i + 1) + '</td>', '<td>' + fmtTime(r.createdAt) + '</td>',
-          '<td style="font-size:12px;color:var(--muted)">' + esc(r.ip || '—') + '</td>',
+        const result = isTest ? calcTestResult(survey, r.data) : null;
+        const cells = ['<td>' + (i + 1) + '</td>', '<td>' + fmtTime(r.createdAt) + '</td>'];
+        if (isTest) {
+          cells.push('<td style="font-weight:600;color:var(--primary,#ff4757)">' + esc(result ? result.name : '—') + '</td>');
+        }
+        cells.push('<td style="font-size:12px;color:var(--muted)">' + esc(r.ip || '—') + '</td>',
           '<td style="font-size:12px;color:var(--muted)">' + esc(r.location || '—') + '</td>',
-          '<td style="font-size:12px;color:var(--muted)" title="' + esc(r.ua || '') + '">' + esc(fmtUA(r.ua)) + '</td>'];
+          '<td style="font-size:12px;color:var(--muted)" title="' + esc(r.ua || '') + '">' + esc(fmtUA(r.ua)) + '</td>');
         survey.structure.forEach(q => {
           const v = r.data[q.id];
           let txt = '';
@@ -877,7 +909,7 @@
           cells.push('<td title="' + esc(txt) + '">' + esc(txt) + '</td>');
         });
         return '<tr>' + cells.join('') + '</tr>';
-      }).join('') || '<tr><td colspan="' + (survey.structure.length + 5) + '" style="text-align:center;color:var(--muted)">加载中…</td></tr>';
+      }).join('') || '<tr><td colspan="' + (survey.structure.length + (isTest ? 6 : 5)) + '" style="text-align:center;color:var(--muted)">加载中…</td></tr>';
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="99" style="text-align:center;color:var(--danger)">加载失败：' + esc(e.message) + '</td></tr>';
     }
