@@ -14,6 +14,14 @@ export async function onRequestGet(ctx) {
       return error('该问卷已截止，感谢参与', 403);
     }
     const count = await countResponses(ctx.env, survey.id);
+    const pubSettings = {
+      submitTip: (survey.settings && survey.settings.submitTip) || '提交成功，感谢参与！'
+    };
+    // 测试型问卷：把 kind 和结果类型下发给前端算分
+    if (survey.settings && survey.settings.kind === 'test') {
+      pubSettings.kind = 'test';
+      pubSettings.results = Array.isArray(survey.settings.results) ? survey.settings.results : [];
+    }
     return json({
       ok: true,
       survey: {
@@ -22,9 +30,7 @@ export async function onRequestGet(ctx) {
         description: survey.description,
         endAt: survey.endAt,
         structure: survey.structure,
-        settings: {
-          submitTip: (survey.settings && survey.settings.submitTip) || '提交成功，感谢参与！'
-        }
+        settings: pubSettings
       },
       responseCount: count
     });

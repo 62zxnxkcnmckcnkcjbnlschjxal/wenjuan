@@ -132,13 +132,18 @@
         const scores = {};
         settings.results.forEach(r => { scores[r.key] = 0; });
         survey.structure.forEach(q => {
-          if (q.type !== 'radio' || !Array.isArray(q.optionTypes)) return;
+          if (!Array.isArray(q.optionTypes)) return;
           const ans = answers[q.id];
-          if (ans === undefined || ans === null || ans === '') return;
-          const idx = (q.options || []).indexOf(ans);
-          if (idx < 0) return;
-          const key = q.optionTypes[idx];
-          if (key && scores[key] !== undefined) scores[key] += 1;
+          if (ans === undefined || ans === null) return;
+          // 单选题：ans 是字符串；多选题：ans 是数组
+          const chosen = Array.isArray(ans) ? ans : [ans];
+          chosen.forEach(opt => {
+            if (opt === '' || opt === undefined || opt === null) return;
+            const idx = (q.options || []).indexOf(opt);
+            if (idx < 0) return;
+            const key = q.optionTypes[idx];
+            if (key && scores[key] !== undefined) scores[key] += 1;
+          });
         });
         let bestKey = settings.results[0].key, bestScore = -1;
         settings.results.forEach(r => {

@@ -22,10 +22,11 @@ export async function onRequestPost(ctx) {
       '根据用户给的主题，一次性生成一整套完整的测试问卷。',
       '要求：',
       '1. 设计 4~6 种互斥且典型的结果类型（人格/态度/风格），每种结果有专属 key（英文短标识）、名称（2~6字）、一段 100~200 字的详细描述（这种人在关系/生活中是什么样）、3~5 个标签；',
-      '2. 设计 ' + count + ' 道单选题，每题 4 个选项（A/B/C/D 风格），每个选项对应一种结果类型（用 key 表示）；',
-      '3. 题目覆盖不同情境/行为反应，不能全是同一角度；选项要具体、有画面感，不要空泛；',
-      '4. 所有题都是必答单选题；',
-      '5. 必须只输出一个 JSON 对象，不要输出任何其他文字、不要用 markdown 包裹。'
+      '2. 设计 ' + count + ' 道题，大部分是单选题（type: "radio"），其中 2~3 道可以是多选题（type: "checkbox"，比如"以下哪些最符合你"）；每题 3~5 个选项；',
+      '3. 每个选项都要对应一种结果类型（用 key 表示）；多选题选中的每个选项都对应加分；',
+      '4. 题目覆盖不同情境/行为反应，不能全是同一角度；选项要具体、有画面感，不要空泛；',
+      '5. 所有题都是必答题；',
+      '6. 必须只输出一个 JSON 对象，不要输出任何其他文字、不要用 markdown 包裹。'
     ].join('\n');
 
     const user = [
@@ -38,11 +39,11 @@ export async function onRequestPost(ctx) {
       '    { "key": "secure", "name": "安全型恋人", "desc": "这种人的详细描述，100~200字，说清楚TA在恋爱/生活中的典型表现、优缺点", "tags": ["信任","稳定"] }',
       '  ],',
       '  "questions": [',
-      '    { "title": "题目内容", "options": ["选项A描述","选项B描述","选项C描述","选项D描述"], "optionTypes": ["secure","anxious","avoidant","fearful"] }',
+      '    { "type": "radio", "title": "题目内容", "options": ["选项A描述","选项B描述","选项C描述","选项D描述"], "optionTypes": ["secure","anxious","avoidant","fearful"] }',
       '  ]',
       '}',
-      '其中：optionTypes 数组和 options 数组一一对应（第1个选项对应第1个 key）；key 必须在 results 里都出现。',
-      '共 ' + count + ' 道题左右，4~6 种结果。'
+      '其中：type 用 "radio"（单选）或 "checkbox"（多选）；optionTypes 数组和 options 数组一一对应（第1个选项对应第1个 key）；key 必须在 results 里都出现。',
+      '共 ' + count + ' 道题左右，4~6 种结果，其中 2~3 道多选题。'
     ].join('\n');
 
     const result = await chatJson(ctx.env, [
@@ -81,7 +82,7 @@ export async function onRequestPost(ctx) {
       });
       structure.push({
         id: 'q' + genId(),
-        type: 'radio',
+        type: q.type === 'checkbox' ? 'checkbox' : 'radio',
         title: String(q.title).trim().slice(0, 200),
         required: true,
         options: paired.map(p => p.text),
