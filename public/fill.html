@@ -32,23 +32,19 @@
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+html, body { background: transparent !important; }
 #bgLayer {
   background: linear-gradient(135deg, #ffdde1, #c2e9fb, #d4c5f9, #fbc2eb, #a6c1ee, #ffdde1);
   background-size: 400% 400%;
   animation: gradientShift 18s ease infinite;
-  opacity: 0.5;
 }
 :root.dark #bgLayer {
   background: linear-gradient(135deg, #2c3e50, #4a3f6b, #1e3c4e, #3d2e5c, #1a3a4a, #2c3e50);
   background-size: 400% 400%;
-  opacity: 0.6;
 }
-#bgShade {
-  background: rgba(255,255,255,0.55);
-}
-:root.dark #bgShade {
-  background: rgba(13,20,18,0.65);
-}
+#bgShade { background: rgba(255,255,255,0.25); }
+:root.dark #bgShade { background: rgba(13,20,18,0.45); }
+body::before { display: none !important; }
 </style>
 <script>
 // 纯 CSS 渐变背景，无需加载图片
