@@ -185,6 +185,24 @@
 
   async function enterApp() {
     $('#lockScreen').style.display = 'none';
+    // 测试模式 UI 联动
+    const syncGenKind = () => {
+      const isTest = $('#kindTest') && $('#kindTest').checked;
+      const topic = $('#aiTopic');
+      const label = $('#aiTopicLabel');
+      const searchOpt = $('#searchOpt');
+      if (isTest) {
+        if (label) label.textContent = '你想做什么测试？';
+        if (topic) topic.placeholder = '例如：我的恋爱人格是什么？ / 面对恋爱我是什么态度？ / 我有多渴望恋爱？ / 职场上我是哪种性格？';
+        if (searchOpt) searchOpt.style.display = 'none';
+      } else {
+        if (label) label.textContent = '你想收集什么内容？';
+        if (topic) topic.placeholder = '例如：我想收集一个《光遇》游戏产品玩法的问卷，了解玩家对游戏玩法、社交系统、氪金内容的满意度与建议';
+        if (searchOpt) searchOpt.style.display = '';
+      }
+    };
+    document.querySelectorAll('input[name="genKind"]').forEach(r => r.addEventListener('change', syncGenKind));
+    syncGenKind();
     route();
   }
 
@@ -936,19 +954,19 @@
 
   async function aiGenerate() {
     const topic = $('#aiTopic').value.trim();
-    if (!topic) { toast('请先描述你想收集什么内容', 'err'); $('#aiTopic').focus(); return; }
+    const isTest = $('#kindTest') && $('#kindTest').checked;
+    if (!topic) { toast(isTest ? '请先描述你想做什么测试' : '请先描述你想收集什么内容', 'err'); $('#aiTopic').focus(); return; }
     const btn = $('#aiGenBtn');
     btn.disabled = true;
-    btn.textContent = 'AI 思考中…（联网检索 + 设计题目）';
-    $('#aiResult').innerHTML = '<div class="ai-loading"><div class="spinner"></div>正在生成问卷，通常需要 30-60 秒…</div>';
+    btn.textContent = isTest ? 'AI 出题+写结果中…（约 30~60 秒）' : 'AI 思考中…（联网检索 + 设计题目）';
+    $('#aiResult').innerHTML = '<div class="ai-loading"><div class="spinner"></div>' + (isTest ? '正在生成测试题与人格结果，通常需要 40~80 秒…' : '正在生成问卷，通常需要 30-60 秒…') + '</div>';
     try {
-      const data = await api('/api/ai/generate', {
+      const apiPath = isTest ? '/api/ai/generate-test' : '/api/ai/generate';
+      const data = await api(apiPath, {
         method: 'POST',
-        body: {
-          topic,
-          count: Number($('#aiCount').value),
-          search: $('#aiSearch').checked
-        }
+        body: isTest
+          ? { topic, count: Number($('#aiCount').value) }
+          : { topic, count: Number($('#aiCount').value), search: $('#aiSearch').checked }
       });
       renderGenResult(data.survey, data.usedSearch);
     } catch (e) {
@@ -961,13 +979,27 @@
 
   function renderGenResult(survey, usedSearch) {
     const box = $('#aiResult');
+    const isTest = survey.kind === 'test';
     let html = '<div class="gen-preview">' +
-      (usedSearch
-        ? '<div class="chip chip-warn" style="margin-bottom:10px">已联网检索相关资料后生成</div>'
-        : '<div class="chip chip-soft" style="margin-bottom:10px">未检索到外部资料（基于 AI 知识生成）</div>') +
+      (isTest ? '<div class="chip chip-warn" style="margin-bottom:10px">性格测试型 · 答完自动出结果</div>'
+        : (usedSearch
+          ? '<div class="chip chip-warn" style="margin-bottom:10px">已联网检索相关资料后生成</div>'
+          : '<div class="chip chip-soft" style="margin-bottom:10px">未检索到外部资料（基于 AI 知识生成）</div>')) +
       '<div class="gp-title">' + esc(survey.title) + '</div>' +
-      '<div class="gp-desc">' + esc(survey.description || '') + '</div>' +
-      '<div style="margin-top:12px">';
+      '<div class="gp-desc">' + esc(survey.description || '') + '</div>';
+    // 测试型：展示结果类型预览
+    if (isTest && Array.isArray(survey.results) && survey.results.length) {
+      html += '<div style="margin:14px 0 8px;font-size:13px;color:var(--muted)">📋 共 ' + survey.results.length + ' 种结果：</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">';
+      survey.results.forEach(r => {
+        html += '<div style="border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;background:var(--card)">' +
+          '<b>' + esc(r.name) + '</b>' +
+          (r.tags && r.tags.length ? '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + esc(r.tags.join(' / ')) + '</div>' : '') +
+          '</div>';
+      });
+      html += '</div>';
+    }
+    html += '<div style="margin-top:12px">';
     survey.structure.forEach((q, i) => {
       const opts = q.options ? '　' + esc(q.options.join(' / ')) : (q.placeholder ? '　' + esc(q.placeholder) : '');
       html += '<div class="gp-q"><div class="n">' + (i + 1) + '</div><div class="t"><b>' + esc(q.title) + '</b>' +
@@ -998,8 +1030,10 @@
           title: gen.title,
           description: gen.description,
           structure: gen.structure,
+          kind: gen.kind || 'survey',
+          results: gen.results || [],
           status: publish ? 'published' : 'draft',
-          settings: { submitTip: '提交成功，感谢参与！' }
+          settings: { submitTip: gen.kind === 'test' ? '查看你的测试结果吧～' : '提交成功，感谢参与！' }
         }
       });
       toast(publish ? '已创建并发布' : '已保存为草稿', 'ok');

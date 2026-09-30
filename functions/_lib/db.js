@@ -66,6 +66,10 @@ export async function createSurvey(env, data) {
   const db = await ensureDb(env);
   const now = Date.now();
   const id = data.id || genSurveyId();
+  // kind/results 合并进 settings（不新增表列）
+  const settings = Object.assign({}, data.settings || {});
+  if (data.kind) settings.kind = data.kind;
+  if (Array.isArray(data.results)) settings.results = data.results;
   await db.prepare(
     `INSERT INTO surveys (id, title, description, status, created_at, updated_at, end_at, settings, structure)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -76,7 +80,7 @@ export async function createSurvey(env, data) {
     data.status === 'published' ? 'published' : 'draft',
     now, now,
     Number(data.end_at || 0),
-    JSON.stringify(data.settings || {}),
+    JSON.stringify(settings),
     JSON.stringify(Array.isArray(data.structure) ? data.structure : [])
   ).run();
   return getSurvey(env, id);

@@ -125,13 +125,58 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || '提交失败');
+
+      // ===== 测试型问卷：前端算分并展示人格结果 =====
+      const settings = survey.settings || {};
+      if (settings.kind === 'test' && Array.isArray(settings.results) && settings.results.length) {
+        const scores = {};
+        settings.results.forEach(r => { scores[r.key] = 0; });
+        survey.structure.forEach(q => {
+          if (q.type !== 'radio' || !Array.isArray(q.optionTypes)) return;
+          const ans = answers[q.id];
+          if (ans === undefined || ans === null || ans === '') return;
+          const idx = (q.options || []).indexOf(ans);
+          if (idx < 0) return;
+          const key = q.optionTypes[idx];
+          if (key && scores[key] !== undefined) scores[key] += 1;
+        });
+        let bestKey = settings.results[0].key, bestScore = -1;
+        settings.results.forEach(r => {
+          if (scores[r.key] > bestScore) { bestScore = scores[r.key]; bestKey = r.key; }
+        });
+        const result = settings.results.find(r => r.key === bestKey) || settings.results[0];
+        showTestResult(result, bestScore, survey.structure.length);
+        return;
+      }
+
       $('#fillRoot').innerHTML = stateView('🎉', '提交成功', data.message || '感谢参与！',
-        '<button class="btn btn-ghost" onclick="location.reload()">再填一份</button>');
+        '<button class="btn btn-ghost" onclick="location.reload()">再测一次</button>');
     } catch (e) {
       if (btn) { btn.disabled = false; btn.textContent = '提交问卷'; }
       submitting = false;
       toast(e.message);
     }
+  }
+
+  function showTestResult(result, score, total) {
+    const pct = total ? Math.round(score / total * 100) : 0;
+    const tagsHtml = (result.tags || []).map(t =>
+      '<span style="display:inline-block;background:var(--primary-soft,rgba(255,71,87,.1));color:var(--primary,#ff4757);border-radius:999px;padding:3px 12px;font-size:12.5px;margin:3px 4px 0 0">' + esc(t) + '</span>'
+    ).join('');
+    $('#fillRoot').innerHTML =
+      '<div class="card card-pad" style="text-align:center;padding:44px 24px;max-width:560px;margin:20px auto">' +
+      '<div style="font-size:14px;color:var(--muted);letter-spacing:.2em;margin-bottom:14px">—— 你的测试结果 ——</div>' +
+      '<div style="font-size:34px;font-weight:700;margin-bottom:6px">' + esc(result.name) + '</div>' +
+      '<div style="font-size:13px;color:var(--muted);margin-bottom:20px">契合度 ' + pct + '%</div>' +
+      '<div style="width:100%;height:8px;background:var(--border,#eee);border-radius:99px;overflow:hidden;margin-bottom:22px">' +
+      '<div style="height:100%;width:' + pct + '%;background:var(--primary,#ff4757);border-radius:99px;transition:width .8s ease"></div></div>' +
+      '<p style="font-size:15px;line-height:1.8;text-align:left;color:var(--fg,#333)">' + esc(result.desc || '') + '</p>' +
+      (tagsHtml ? '<div style="margin-top:18px;text-align:center">' + tagsHtml + '</div>' : '') +
+      '<div style="margin-top:28px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">' +
+      '<button class="btn btn-primary" onclick="location.reload()">再测一次</button>' +
+      '<button class="btn btn-ghost" onclick="navigator.clipboard && navigator.clipboard.writeText(\'我测出来是「' + esc(result.name) + '」，你也来测测：\' + location.href).then(()=>alert(\'结果已复制\')).catch(()=>alert(\'复制失败\'))">复制分享</button>' +
+      '</div></div>';
+    window.scrollTo(0, 0);
   }
 
   function toast(msg) {

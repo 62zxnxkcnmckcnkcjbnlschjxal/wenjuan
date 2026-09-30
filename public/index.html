@@ -63,12 +63,16 @@
       </div>
       <div class="ai-gen-card">
         <div class="ai-banner" id="aiBanner"></div>
+        <div class="gen-options" style="margin-bottom:12px">
+          <label class="opt"><input type="radio" name="genKind" id="kindSurvey" value="survey" checked> 普通收集问卷</label>
+          <label class="opt"><input type="radio" name="genKind" id="kindTest" value="test"> 性格/人格测试（答完出结果）</label>
+        </div>
         <label class="field">
-          <span class="f-label">你想收集什么内容？</span>
+          <span class="f-label" id="aiTopicLabel">你想收集什么内容？</span>
           <textarea class="textarea topic-input" id="aiTopic" placeholder="例如：我想收集一个《光遇》游戏产品玩法的问卷，了解玩家对游戏玩法、社交系统、氪金内容的满意度与建议"></textarea>
         </label>
         <div class="gen-options">
-          <label class="opt"><input type="checkbox" id="aiSearch" checked> 先联网检索相关资料（尽力而为）</label>
+          <label class="opt" id="searchOpt"><input type="checkbox" id="aiSearch" checked> 先联网检索相关资料（尽力而为）</label>
           <label class="opt">题目数量
             <select class="select" id="aiCount">
               <option value="5">5 题</option>
@@ -76,6 +80,7 @@
               <option value="10">10 题</option>
               <option value="12">12 题</option>
               <option value="15">15 题</option>
+              <option value="20">20 题</option>
             </select>
           </label>
         </div>
