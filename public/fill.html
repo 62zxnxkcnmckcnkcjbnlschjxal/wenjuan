@@ -17,8 +17,8 @@
 </script>
 </head>
 <body>
-<div id="bgLayer" style="position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;opacity:0;transition:opacity .8s ease;pointer-events:none"></div>
-<div id="bgShade" style="position:fixed;inset:0;z-index:1;background:linear-gradient(180deg,rgba(241,247,245,.88),rgba(241,247,245,.94));pointer-events:none"></div>
+<div id="bgLayer" style="position:fixed;inset:0;z-index:0;pointer-events:none"></div>
+<div id="bgShade" style="position:fixed;inset:0;z-index:1;pointer-events:none"></div>
 <div class="app" style="position:relative;z-index:2">
   <main class="container" style="max-width:720px">
     <div id="fillRoot"></div>
@@ -36,13 +36,12 @@
   background: linear-gradient(135deg, #ffdde1, #c2e9fb, #d4c5f9, #fbc2eb, #a6c1ee, #ffdde1);
   background-size: 400% 400%;
   animation: gradientShift 18s ease infinite;
-  opacity: 0.65 !important;
-  transition: none !important;
+  opacity: 0.5;
 }
 :root.dark #bgLayer {
   background: linear-gradient(135deg, #2c3e50, #4a3f6b, #1e3c4e, #3d2e5c, #1a3a4a, #2c3e50);
   background-size: 400% 400%;
-  opacity: 0.75 !important;
+  opacity: 0.6;
 }
 #bgShade {
   background: rgba(255,255,255,0.55);
