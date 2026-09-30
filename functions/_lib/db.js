@@ -22,7 +22,10 @@ export async function ensureDb(env) {
         id TEXT PRIMARY KEY,
         survey_id TEXT NOT NULL,
         data TEXT NOT NULL,
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL,
+        ip TEXT NOT NULL DEFAULT '',
+        ua TEXT NOT NULL DEFAULT '',
+        location TEXT NOT NULL DEFAULT ''
       )`),
       env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_responses_survey ON responses(survey_id, created_at)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)`)
@@ -32,6 +35,10 @@ export async function ensureDb(env) {
     });
   }
   await initPromise;
+  // 兼容老库：responses 表补充追踪列（列已存在时静默失败）
+  for (const col of ['ip', 'ua', 'location']) {
+    await env.DB.prepare(`ALTER TABLE responses ADD COLUMN ${col} TEXT NOT NULL DEFAULT ''`).run().catch(() => {});
+  }
   return env.DB;
 }
 
@@ -130,23 +137,27 @@ export async function countResponses(env, surveyId) {
   return Number(row ? row.c : 0);
 }
 
-export async function addResponse(env, surveyId, data) {
+export async function addResponse(env, surveyId, data, trace = {}) {
   const db = await ensureDb(env);
   const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  await db.prepare('INSERT INTO responses (id, survey_id, data, created_at) VALUES (?, ?, ?, ?)')
-    .bind(id, surveyId, JSON.stringify(data), Date.now()).run();
+  await db.prepare('INSERT INTO responses (id, survey_id, data, created_at, ip, ua, location) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, surveyId, JSON.stringify(data), Date.now(),
+      String(trace.ip || ''), String(trace.ua || ''), String(trace.location || '')).run();
   return id;
 }
 
 export async function listResponses(env, surveyId, limit = 500) {
   const db = await ensureDb(env);
   const { results } = await db.prepare(
-    'SELECT id, data, created_at FROM responses WHERE survey_id = ? ORDER BY created_at DESC LIMIT ?'
+    'SELECT id, data, created_at, ip, ua, location FROM responses WHERE survey_id = ? ORDER BY created_at DESC LIMIT ?'
   ).bind(surveyId, limit).all();
   return results.map(r => ({
     id: r.id,
     createdAt: Number(r.created_at),
-    data: safeObj(r.data)
+    data: safeObj(r.data),
+    ip: r.ip || '',
+    ua: r.ua || '',
+    location: r.location || ''
   }));
 }
 

@@ -31,7 +31,6 @@
       </div>
       <div class="header-spacer"></div>
       <button class="btn btn-ghost btn-sm hide-sm" id="navAiBtn" onclick="location.hash='#/ai'">✨ AI 生成</button>
-      <button class="btn btn-ghost btn-sm hide-sm" id="navLinksBtn" onclick="location.hash='#/links'">🔗 友链</button>
       <button class="btn btn-ghost btn-sm" id="navHomeBtn" onclick="location.hash='#/'">问卷列表</button>
       <button class="icon-btn" id="themeToggle" title="切换深浅色">◐</button>
     </div>
@@ -102,22 +101,6 @@
     <section class="page" id="view-results" style="display:none">
       <div id="resultsBody"></div>
     </section>
-
-    <!-- 友链（读主站 FF大王博客，自动同步） -->
-    <section class="page" id="view-links" style="display:none">
-      <div class="page-head">
-        <div>
-          <h1>友链</h1>
-          <div class="sub">来自主站 FF大王博客 · 云端同步 · 点击直达</div>
-        </div>
-      </div>
-      <div class="link-src-row">
-        <input class="input" type="url" id="linksSrcInput" placeholder="主站友链地址（默认 skyzyf335.top/api/links）">
-        <button class="btn btn-soft" id="linksSrcSave">保存</button>
-      </div>
-      <div class="link-hint" id="linksSrcHint">主站新增友链后，这里自动同步显示。</div>
-      <div class="link-list" id="linkList"></div>
-    </section>
   </main>
 </div>
 
@@ -135,171 +118,7 @@
 
 <div id="toast-wrap"></div>
 
-<!-- 跨站公告弹窗（公告源：FF大王博客，只读） -->
-<div class="notice-mask" id="noticeMask">
-  <div class="notice-card" role="dialog" aria-modal="true">
-    <div class="notice-head">
-      <span class="notice-badge"></span>
-      <div class="notice-title" id="noticeTitle">更新公告</div>
-      <button class="notice-close" id="noticeClose" title="关闭">✕</button>
-    </div>
-    <div class="notice-body" id="noticeBody"></div>
-    <div class="notice-foot">
-      <label><input type="checkbox" id="noticeNotifyCb"> 每次公告更新都提醒我</label>
-      <button class="notice-btn" id="noticeOk">知道了</button>
-    </div>
-  </div>
-</div>
-
-<script>
-/* ===== 跨站公告弹窗（公告源：FF大王博客 https://skyzyf335.top） ===== */
-(function(){
-  var SRC_LS='qwNoticeSource';
-  var SEEN_LS='qwNoticeSeen';
-  var NOTIFY_LS='qwNoticeNotify';
-  var DEF_SRC='https://skyzyf335.top';
-  var BAK_SRC='https://ffdaz-blog.pages.dev'; // 旧部署兼容
-  var mask=document.getElementById('noticeMask');
-  var titleEl=document.getElementById('noticeTitle');
-  var bodyEl=document.getElementById('noticeBody');
-  var cb=document.getElementById('noticeNotifyCb');
-  var okBtn=document.getElementById('noticeOk');
-  var closeBtn=document.getElementById('noticeClose');
-  var current=null;
-
-  function srcBase(){
-    try{ var v=String(localStorage.getItem(SRC_LS)||'').trim(); if(v) return v.replace(/\/+$/,''); }catch(e){}
-    return DEF_SRC;
-  }
-  /* 简易 Markdown → HTML（够弹窗用：标题/粗体/列表/代码/引用/链接/段落） */
-  function md2html(src){
-    var s=String(src||'');
-    s=s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    s=s.replace(/```([\s\S]*?)```/g,function(m,c){ return '<pre><code>'+c.trim()+'</code></pre>'; });
-    s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>');
-    s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-    s=s.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
-    s=s.replace(/^### (.*)$/gm,'<h3>$1</h3>');
-    s=s.replace(/^## (.*)$/gm,'<h2>$1</h2>');
-    s=s.replace(/^# (.*)$/gm,'<h1>$1</h1>');
-    s=s.replace(/^[-*] (.*)$/gm,'<li>$1</li>');
-    s=s.replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g,'<ul>$1</ul>');
-    s=s.replace(/^&gt; (.*)$/gm,'<blockquote>$1</blockquote>');
-    s=s.replace(/^(?!<[hupbl]|<\/|&gt;)(.+)$/gm,'<p>$1</p>');
-    return s;
-  }
-  function keyOf(a){ return String(a.id)+'_'+(a.updatedAt||0); }
-  function shouldShow(a){
-    if(!a||!a.title) return false;
-    var key=keyOf(a), seen=null, notify=false;
-    try{ seen=localStorage.getItem(SEEN_LS); notify=localStorage.getItem(NOTIFY_LS)==='1'; }catch(e){}
-    if(seen===key) return false;
-    if(seen && !notify) return false;
-    return true;
-  }
-  function openNotice(a){
-    if(!a||!mask||!titleEl||!bodyEl) return;
-    current=a;
-    titleEl.textContent=a.title||'更新公告';
-    bodyEl.innerHTML=md2html(a.content||'');
-    try{ cb.checked=localStorage.getItem(NOTIFY_LS)==='1'; }catch(e){}
-    mask.classList.add('show');
-  }
-  function dismiss(){
-    try{
-      if(current) localStorage.setItem(SEEN_LS,keyOf(current));
-      localStorage.setItem(NOTIFY_LS,cb&&cb.checked?'1':'0');
-    }catch(e){}
-    if(mask) mask.classList.remove('show');
-  }
-  function pull(){
-    /* 多源自动探测：本地设置 → 主站域名 → 旧部署域名 */
-    var candidates=[];
-    var b=srcBase();
-    if(b) candidates.push(b);
-    if(DEF_SRC && candidates.indexOf(DEF_SRC)<0) candidates.push(DEF_SRC);
-    if(BAK_SRC && candidates.indexOf(BAK_SRC)<0) candidates.push(BAK_SRC);
-    (function tryNext(i){
-      if(i>=candidates.length) return;
-      var src=candidates[i];
-      fetch(src+'/api/public-notice',{credentials:'omit'}).then(function(r){
-        if(!r.ok) throw new Error('http '+r.status);
-        return r.json();
-      }).then(function(d){
-        if(!d||!d.ok||!d.notice) throw new Error('empty');
-        try{ localStorage.setItem(SRC_LS,src); }catch(e){}
-        if(shouldShow(d.notice)) openNotice(d.notice);
-      }).catch(function(){ tryNext(i+1); });
-    })(0);
-  }
-  if(okBtn) okBtn.addEventListener('click',dismiss);
-  if(closeBtn) closeBtn.addEventListener('click',dismiss);
-  if(mask) mask.addEventListener('click',function(ev){ if(ev.target===mask) dismiss(); });
-  document.addEventListener('keydown',function(ev){ if(ev.key==='Escape') dismiss(); });
-  /* 页面打开后延迟拉取，失败静默 */
-  setTimeout(function(){ try{ pull(); }catch(e){} }, 1400);
-})();
-</script>
 <script src="/renderer.js"></script>
 <script src="/app.js"></script>
-<script>
-/* ===== 友链（读主站 FF大王博客 /api/links，自动同步） ===== */
-(function(){
-  var SRC_LS='qwLinksSrc';
-  var DEF_SRC='https://skyzyf335.top/api/links';
-  function srcBase(){
-    try{ var v=String(localStorage.getItem(SRC_LS)||'').trim(); if(v) return v.replace(/\/+$/,''); }catch(e){}
-    return DEF_SRC;
-  }
-  function logoInfo(url){
-    try{ var u=new URL(url); var d=u.hostname.replace(/^www\./,'');
-      return { primary:'https://'+d+'/favicon.ico', fallback:'https://icons.duckduckgo.com/ip3/'+d+'.ico', initial:(d.charAt(0)||'?').toUpperCase() };
-    }catch(e){ return null; }
-  }
-  function loadLinks(){
-    var box=document.getElementById('linkList');
-    var hint=document.getElementById('linksSrcHint');
-    var inp=document.getElementById('linksSrcInput');
-    if(!box) return;
-    if(inp && !inp.value) inp.value=srcBase();
-    if(hint) hint.textContent='正在从主站读取友链…';
-    box.innerHTML='<div class="link-empty">正在从主站读取友链…</div>';
-    fetch(srcBase(),{method:'GET'})
-      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-      .then(function(d){
-        var list=Array.isArray(d&&d.links)?d.links:[];
-        if(!list.length){ if(hint) hint.textContent='主站已连接，当前暂无友链。'; box.innerHTML='<div class="link-empty">主站暂无友链，去主站添加后会同步到这里。</div>'; return; }
-        if(hint) hint.textContent='已同步主站 '+list.length+' 条友链 · 自动跟随更新。';
-        box.innerHTML=list.map(function(l){
-          var info=logoInfo(l.url);
-          var img=info
-            ? '<span class="link-logo-wrap"><img class="link-logo" src="'+info.primary+'" alt="" loading="lazy" onerror="this.style.display=\'none\';var p=this.nextElementSibling;if(p)p.style.display=\'flex\';"><span class="link-logo-fb" style="display:none">'+info.initial+'</span></span>'
-            : '<span class="link-logo-wrap"><span class="link-logo-fb">?</span></span>';
-          return '<a class="link-item" href="'+String(l.url).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" target="_blank" rel="noopener nofollow">'+img+
-            '<span class="link-mid"><span class="link-title"></span><span class="link-url"></span></span></a>';
-        }).join('');
-        box.querySelectorAll('.link-item').forEach(function(a,i){
-          var t=a.querySelector('.link-title'); if(t) t.textContent=list[i].title;
-          var u=a.querySelector('.link-url'); if(u) u.textContent=String(list[i].url).replace(/^https?:\/\//,'');
-        });
-      })
-      .catch(function(e){
-        if(hint) hint.textContent='读取失败：'+e.message+'。请确认主站地址正确且已部署。';
-        box.innerHTML='<div class="link-empty">读取失败：'+e.message+'<br>请检查主站地址是否正确、主站是否已部署。</div>';
-      });
-  }
-  var save=document.getElementById('linksSrcSave');
-  var inp=document.getElementById('linksSrcInput');
-  if(save && inp){
-    save.addEventListener('click',function(){
-      var v=String(inp.value||'').trim().replace(/\/+$/,'');
-      if(!v) return;
-      try{ localStorage.setItem(SRC_LS,v); }catch(e){}
-      loadLinks();
-    });
-  }
-  window.__loadLinks=loadLinks;
-})();
-</script>
 </body>
 </html>

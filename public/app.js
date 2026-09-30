@@ -33,7 +33,31 @@
     if (!ms) return '—';
     const d = new Date(ms);
     const p = n => String(n).padStart(2, '0');
-    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+
+  // 从 User-Agent 解析粗略机型/浏览器
+  function fmtUA(ua) {
+    if (!ua) return '—';
+    let dev = '';
+    let m = ua.match(/iPhone(?:\s*OS\s*([\d_]+))?/);
+    if (m) dev = 'iPhone' + (m[1] ? ' ' + m[1].replace(/_/g, '.') : '');
+    if (!dev) {
+      m = ua.match(/Android\s*[\d.]+;\s*([^;)]+)/);
+      if (m) dev = m[1].trim();
+    }
+    if (!dev && /iPad/.test(ua)) dev = 'iPad';
+    if (!dev) {
+      m = ua.match(/(Windows NT [\d.]+|Mac OS X [\d_]+|Linux)/);
+      if (m) dev = m[1].replace(/_/g, '.');
+    }
+    let br = '';
+    if (/Edg\//.test(ua)) br = 'Edge';
+    else if (/OPR\//.test(ua)) br = 'Opera';
+    else if (/Chrome\//.test(ua) && /Safari/.test(ua)) br = 'Chrome';
+    else if (/Firefox\//.test(ua)) br = 'Firefox';
+    else if (/Safari\//.test(ua)) br = 'Safari';
+    return (dev ? dev : '未知设备') + (br ? ' · ' + br : '');
   }
 
   function debounce(fn, ms) {
@@ -170,9 +194,6 @@
     } else if (hash.startsWith('#/ai')) {
       $('#view-ai').style.display = 'block';
       refreshAiStatus();
-    } else if (hash.startsWith('#/links')) {
-      $('#view-links').style.display = 'block';
-      if (window.__loadLinks) { try { window.__loadLinks(); } catch (e) {} }
     } else {
       $('#view-dashboard').style.display = 'block';
       loadDashboard();
@@ -180,7 +201,7 @@
   }
 
   function hideAll() {
-    ['view-dashboard', 'view-ai', 'view-editor', 'view-results', 'view-links'].forEach(id => {
+    ['view-dashboard', 'view-ai', 'view-editor', 'view-results'].forEach(id => {
       $('#' + id).style.display = 'none';
     });
   }
@@ -248,11 +269,11 @@
       '<div class="s-count"><b>' + count + '</b><span>答卷</span></div>' +
       '<div class="s-actions">' +
       '<button class="btn btn-soft btn-sm" data-act="edit">编辑</button>' +
-      '<button class="btn btn-ghost btn-sm" data-act="results">结果</button>' +
+      '<button class="btn btn-primary btn-sm" data-act="results">📊 结果</button>' +
       (s.status === 'published'
-        ? '<button class="btn btn-ghost btn-sm" data-act="close">结束</button>'
+        ? '<button class="btn btn-danger-soft btn-sm" style="margin-left:10px" data-act="close">⏹ 结束</button>'
         : '<button class="btn btn-primary btn-sm" data-act="publish">发布</button>') +
-      '<button class="btn btn-ghost btn-sm" data-act="duplicate" title="复制为草稿">复制</button>' +
+      '<button class="btn btn-ghost btn-sm" style="margin-left:10px" data-act="duplicate" title="复制为草稿">复制</button>' +
       '<button class="icon-btn danger" data-act="delete" title="删除">✕</button>' +
       '</div></div>';
   }
@@ -731,7 +752,7 @@
     tableCard.innerHTML = '<div class="card-pad"><div class="card-title">答卷明细（最多显示 500 份）</div></div>';
     const tWrap = document.createElement('div');
     tWrap.className = 'table-wrap';
-    tWrap.innerHTML = '<table class="res-table"><thead><tr><th>#</th><th>提交时间</th>' +
+    tWrap.innerHTML = '<table class="res-table"><thead><tr><th>#</th><th>提交时间</th><th>IP</th><th>地点</th><th>设备/浏览器</th>' +
       survey.structure.map((q, i) => '<th>' + esc('Q' + (i + 1)) + '</th>').join('') + '</tr></thead><tbody></tbody></table>';
     tableCard.appendChild(tWrap);
     box.appendChild(tableCard);
@@ -815,7 +836,10 @@
     try {
       const data = await api('/api/surveys/' + survey.id + '/responses?limit=500');
       tbody.innerHTML = data.responses.map((r, i) => {
-        const cells = ['<td>' + (i + 1) + '</td>', '<td>' + fmtTime(r.createdAt) + '</td>'];
+        const cells = ['<td>' + (i + 1) + '</td>', '<td>' + fmtTime(r.createdAt) + '</td>',
+          '<td style="font-size:12px;color:var(--muted)">' + esc(r.ip || '—') + '</td>',
+          '<td style="font-size:12px;color:var(--muted)">' + esc(r.location || '—') + '</td>',
+          '<td style="font-size:12px;color:var(--muted)" title="' + esc(r.ua || '') + '">' + esc(fmtUA(r.ua)) + '</td>'];
         survey.structure.forEach(q => {
           const v = r.data[q.id];
           let txt = '';
@@ -824,7 +848,7 @@
           cells.push('<td title="' + esc(txt) + '">' + esc(txt) + '</td>');
         });
         return '<tr>' + cells.join('') + '</tr>';
-      }).join('') || '<tr><td colspan="' + (survey.structure.length + 2) + '" style="text-align:center;color:var(--muted)">加载中…</td></tr>';
+      }).join('') || '<tr><td colspan="' + (survey.structure.length + 5) + '" style="text-align:center;color:var(--muted)">加载中…</td></tr>';
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="99" style="text-align:center;color:var(--danger)">加载失败：' + esc(e.message) + '</td></tr>';
     }

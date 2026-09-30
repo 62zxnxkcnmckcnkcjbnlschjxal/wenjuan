@@ -32,7 +32,17 @@ export async function onRequestPost(ctx) {
     }
     if (errors.length) return error(errors[0], 400);
 
-    await addResponse(ctx.env, survey.id, answers);
+    // ===== 采集访问追踪信息（IP / UA / 地点）=====
+    const h = ctx.request.headers;
+    const ip = h.get('cf-connecting-ip') || (h.get('x-forwarded-for') || '').split(',')[0].trim() || '';
+    const ua = h.get('user-agent') || '';
+    // Cloudflare 自动注入的地理位置头（CF_ 前缀转 header 名）
+    const country = h.get('cf-ipcountry') || '';
+    const region = h.get('cf-region') || '';
+    const city = h.get('cf-ipcity') || '';
+    const location = [city, region, country].filter(Boolean).join(' ');
+
+    await addResponse(ctx.env, survey.id, answers, { ip, ua, location });
     const tip = (survey.settings && survey.settings.submitTip) || '提交成功，感谢参与！';
     return json({ ok: true, message: tip });
   } catch (e) {
