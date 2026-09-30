@@ -780,7 +780,10 @@
     tableCard.className = 'card';
     tableCard.innerHTML = '<div class="card-pad"><div class="card-title">答卷明细（最多显示 500 份）</div></div>';
     const tWrap = document.createElement('div');
-    const isTest = survey.settings && survey.settings.kind === 'test' && Array.isArray(survey.settings.results) && survey.settings.results.length;
+    // 自动检测测试型：settings.kind=test 或题目里带 optionTypes 都算
+    const hasOptTypes = (survey.structure || []).some(q => Array.isArray(q.optionTypes) && q.optionTypes.length);
+    const isTest = (survey.settings && survey.settings.kind === 'test' && Array.isArray(survey.settings.results) && survey.settings.results.length)
+      || (hasOptTypes && Array.isArray(survey.settings && survey.settings.results) && survey.settings.results.length);
     tWrap.className = 'table-wrap';
     tWrap.innerHTML = '<table class="res-table"><thead><tr><th>#</th><th>提交时间</th>' +
       (isTest ? '<th>测试结果</th>' : '') +
@@ -891,7 +894,9 @@
   async function loadResponsesTable(survey, tbody) {
     try {
       const data = await api('/api/surveys/' + survey.id + '/responses?limit=500');
-      const isTest = survey.settings && survey.settings.kind === 'test';
+      const hasOptTypes = (survey.structure || []).some(q => Array.isArray(q.optionTypes) && q.optionTypes.length);
+      const isTest = (survey.settings && survey.settings.kind === 'test' && Array.isArray(survey.settings && survey.settings.results) && survey.settings.results.length)
+        || (hasOptTypes && Array.isArray(survey.settings && survey.settings.results) && survey.settings.results.length);
       tbody.innerHTML = data.responses.map((r, i) => {
         const result = isTest ? calcTestResult(survey, r.data) : null;
         const cells = ['<td>' + (i + 1) + '</td>', '<td>' + fmtTime(r.createdAt) + '</td>'];
