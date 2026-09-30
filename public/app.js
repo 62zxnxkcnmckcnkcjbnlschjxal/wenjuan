@@ -36,28 +36,38 @@
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
   }
 
-  // 从 User-Agent 解析粗略机型/浏览器
+  // 从 User-Agent 解析粗略机型/浏览器（简短友好）
   function fmtUA(ua) {
     if (!ua) return '—';
     let dev = '';
-    let m = ua.match(/iPhone(?:\s*OS\s*([\d_]+))?/);
+    let m = ua.match(/iPhone(?:\s+OS\s*([\d_]+))?/);
     if (m) dev = 'iPhone' + (m[1] ? ' ' + m[1].replace(/_/g, '.') : '');
-    if (!dev) {
-      m = ua.match(/Android\s*[\d.]+;\s*([^;)]+)/);
-      if (m) dev = m[1].trim();
-    }
     if (!dev && /iPad/.test(ua)) dev = 'iPad';
+    if (!dev) {
+      // 安卓：取分号后到 Build/;) 前的型号，去掉冗余
+      m = ua.match(/Android\s+[\d.]+;\s*([^;)]+?)(?:\s+Build|\);|\s*;)/);
+      if (m) {
+        dev = m[1].trim()
+          .replace(/^Apple\s+/i, '')
+          .replace(/;\s*wv\b/i, '')
+          .trim();
+        if (dev.length > 20) dev = dev.slice(0, 20);
+      }
+    }
     if (!dev) {
       m = ua.match(/(Windows NT [\d.]+|Mac OS X [\d_]+|Linux)/);
       if (m) dev = m[1].replace(/_/g, '.');
     }
+    // 浏览器
     let br = '';
-    if (/Edg\//.test(ua)) br = 'Edge';
+    if (/MicroMessenger/.test(ua)) br = '微信';
+    else if (/Edg\//.test(ua)) br = 'Edge';
     else if (/OPR\//.test(ua)) br = 'Opera';
+    else if (/QQ\//.test(ua)) br = 'QQ浏览器';
     else if (/Chrome\//.test(ua) && /Safari/.test(ua)) br = 'Chrome';
     else if (/Firefox\//.test(ua)) br = 'Firefox';
     else if (/Safari\//.test(ua)) br = 'Safari';
-    return (dev ? dev : '未知设备') + (br ? ' · ' + br : '');
+    return (dev || '未知设备') + (br ? ' · ' + br : '');
   }
 
   function debounce(fn, ms) {

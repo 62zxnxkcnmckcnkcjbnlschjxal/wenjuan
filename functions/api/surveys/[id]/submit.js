@@ -36,11 +36,19 @@ export async function onRequestPost(ctx) {
     const h = ctx.request.headers;
     const ip = h.get('cf-connecting-ip') || (h.get('x-forwarded-for') || '').split(',')[0].trim() || '';
     const ua = h.get('user-agent') || '';
-    // Cloudflare 自动注入的地理位置头（CF_ 前缀转 header 名）
-    const country = h.get('cf-ipcountry') || '';
-    const region = h.get('cf-region') || '';
-    const city = h.get('cf-ipcity') || '';
-    const location = [city, region, country].filter(Boolean).join(' ');
+    // Cloudflare 地理位置信息在 request.cf 对象上（不在 headers）
+    const cf = ctx.request.cf || {};
+    const country = cf.country || h.get('cf-ipcountry') || '';
+    const region = cf.region || '';   // 省/州
+    const city = cf.city || '';       // 城市
+    // 中国显示为"河南省 郑州市"，国外显示城市+国家
+    let location;
+    if (country === 'CN' || country === 'TWN' || country === 'HKG' || country === 'MAC') {
+      location = [region, city].filter(Boolean).join(' ');
+    } else {
+      location = [city, region, country].filter(Boolean).join(' ');
+    }
+    if (!location) location = country || '未知';
 
     await addResponse(ctx.env, survey.id, answers, { ip, ua, location });
     const tip = (survey.settings && survey.settings.submitTip) || '提交成功，感谢参与！';
