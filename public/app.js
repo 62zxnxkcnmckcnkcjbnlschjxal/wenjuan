@@ -782,8 +782,7 @@
     const tWrap = document.createElement('div');
     // 自动检测测试型：settings.kind=test 或题目里带 optionTypes 都算
     const hasOptTypes = (survey.structure || []).some(q => Array.isArray(q.optionTypes) && q.optionTypes.length);
-    const isTest = (survey.settings && survey.settings.kind === 'test' && Array.isArray(survey.settings.results) && survey.settings.results.length)
-      || (hasOptTypes && Array.isArray(survey.settings && survey.settings.results) && survey.settings.results.length);
+    const isTest = hasOptTypes;
     tWrap.className = 'table-wrap';
     tWrap.innerHTML = '<table class="res-table"><thead><tr><th>#</th><th>提交时间</th>' +
       (isTest ? '<th>测试结果</th>' : '') +
@@ -869,10 +868,18 @@
 
   // 测试型问卷：根据 answers 算分，返回结果名
   function calcTestResult(survey, answers) {
-    const settings = survey.settings || {};
-    if (settings.kind !== 'test' || !Array.isArray(settings.results)) return null;
+    let results = (survey.settings && Array.isArray(survey.settings.results)) ? survey.settings.results : [];
+    // 兜底：如果 settings.results 为空，从 structure 的 optionTypes 提取所有 key
+    if (!results.length) {
+      const keys = new Set();
+      (survey.structure || []).forEach(q => {
+        (q.optionTypes || []).forEach(k => { if (k) keys.add(k); });
+      });
+      results = Array.from(keys).map(k => ({ key: k, name: k, desc: '' }));
+    }
+    if (!results.length) return null;
     const scores = {};
-    settings.results.forEach(r => { scores[r.key] = 0; });
+    results.forEach(r => { scores[r.key] = 0; });
     (survey.structure || []).forEach(q => {
       if (!Array.isArray(q.optionTypes)) return;
       const ans = answers[q.id];
@@ -886,9 +893,9 @@
         if (key && scores[key] !== undefined) scores[key] += 1;
       });
     });
-    let bestKey = settings.results[0].key;
-    settings.results.forEach(r => { if (scores[r.key] > scores[bestKey]) bestKey = r.key; });
-    return settings.results.find(r => r.key === bestKey) || settings.results[0];
+    let bestKey = results[0].key;
+    results.forEach(r => { if (scores[r.key] > scores[bestKey]) bestKey = r.key; });
+    return results.find(r => r.key === bestKey) || results[0];
   }
 
   async function loadResponsesTable(survey, tbody) {
