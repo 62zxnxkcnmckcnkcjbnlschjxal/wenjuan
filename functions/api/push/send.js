@@ -37,10 +37,23 @@ async function createVapidJwt(audience) {
   const signingInput = enc.encode(headerB64 + '.' + payloadB64);
   const key = await importVapidPrivateKey();
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, signingInput);
-  // DER -> raw (r||s, 各32字节)
+  // DER -> raw (r||s, 各32字节)，正确处理前导0
   const der = new Uint8Array(sig);
-  const r = der.slice(der[2] + 3, der[2] + 3 + 32);
-  const s = der.slice(der[2] + 3 + 32, der[2] + 3 + 64);
+  // DER: 0x30 len | 0x02 rlen rvalue | 0x02 slen svalue
+  let offset = 2;
+  // r
+  const rLen = der[offset + 1];
+  let rStart = offset + 2;
+  let r = der.slice(rStart, rStart + rLen);
+  if (r.length > 32) r = r.slice(1); // 去掉前导0
+  if (r.length < 32) { const pad = new Uint8Array(32 - r.length); r = new Uint8Array([...pad, ...r]); }
+  offset = rStart + rLen;
+  // s
+  const sLen = der[offset + 1];
+  let sStart = offset + 2;
+  let s = der.slice(sStart, sStart + sLen);
+  if (s.length > 32) s = s.slice(1);
+  if (s.length < 32) { const pad = new Uint8Array(32 - s.length); s = new Uint8Array([...pad, ...s]); }
   return headerB64 + '.' + payloadB64 + '.' + bufToUrlBase64(new Uint8Array([...r, ...s]));
 }
 
@@ -76,15 +89,15 @@ async function encryptPayload(sub, plaintext) {
     return new Uint8Array(bits);
   };
 
-  // RFC 8291: auth secret + ecdh -> key
-  const keyInfo = enc.encode('WebPush: info\x00') + userPub;
-  // 简化：直接用标准 HKDF 步骤
-  const pseudoRandomKey = await hkdf(authSecret, ecdhBits, enc.encode('WebPush: info\x00'), 32);
+  // RFC 8291: 第一步 HKDF：auth_secret + ecdh -> PRK1 -> IKM_info
+  // info = "WebPush: info\0" + user_public_key (65 bytes)
+  const wpInfo = new Uint8Array([...enc.encode('WebPush: info\x00'), ...userPub]);
+  const pseudoRandomKey = await hkdf(authSecret, ecdhBits, wpInfo, 32);
 
   // salt (16 random bytes)
   const salt = crypto.getRandomValues(new Uint8Array(16));
 
-  // content encryption key
+  // content encryption key: HKDF with salt, IKM=pseudoRandomKey
   const cekInfo = enc.encode('Content-Encoding: aes128gcm\x00');
   const cek = await hkdf(salt, pseudoRandomKey, cekInfo, 16);
 
