@@ -1118,8 +1118,9 @@
       }
       listEl.innerHTML = data.devices.map((d, i) => {
         const time = new Date(d.created_at).toLocaleString('zh-CN', { hour12: false });
+        const devName = d.device || d.endpoint_domain || '未知设备';
         return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">' +
-          '<div><div style="font-size:13px;font-weight:600">设备 ' + (i+1) + '</div>' +
+          '<div><div style="font-size:13px;font-weight:600">📱 ' + devName + '</div>' +
           '<div style="font-size:12px;color:var(--muted)">' + d.endpoint_domain + ' · ' + time + '</div></div>' +
           '<button class="btn btn-danger-soft btn-sm" onclick="App.removeDevice(\'' + d.endpoint.replace(/'/g, "\\'") + '\')">删除</button></div>';
       }).join('');
@@ -1146,20 +1147,43 @@
     return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
   }
 
+  function fmtUA(ua) {
+    ua = ua || navigator.userAgent;
+    if (/iPhone/.test(ua)) {
+      const m = ua.match(/iPhone OS (\d+)[._](\d+)/);
+      return 'iPhone iOS ' + (m ? m[1] + '.' + m[2] : '');
+    }
+    if (/iPad/.test(ua)) {
+      const m = ua.match(/OS (\d+)[._](\d+)/);
+      return 'iPad iPadOS ' + (m ? m[1] + '.' + m[2] : '');
+    }
+    if (/Android/.test(ua)) {
+      const m = ua.match(/Android (\d+[.\d]*)/);
+      return 'Android ' + (m ? m[1] : '');
+    }
+    if (/Mac/.test(ua)) return 'Mac 电脑';
+    if (/Windows/.test(ua)) return 'Windows 电脑';
+    if (/Linux/.test(ua)) return 'Linux';
+    return '未知设备';
+  }
+
   async function enableNotify() {
     try {
-      if (!('Notification' in window)) { toast('此浏览器不支持通知', 'err'); return; }
+      if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) { toast('此浏览器不支持通知', 'err'); return; }
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') { toast('通知权限被拒绝', 'err'); return; }
-      const reg = await navigator.serviceWorker.register('/sw.js');
+      const reg = await navigator.serviceWorker.register('/sw.js?v=2');
       await navigator.serviceWorker.ready;
+      // 强制重新订阅（先删旧的再建新的），避免 D1 里没记录但浏览器以为已订阅
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) await existing.unsubscribe();
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToBuf(VAPID_PUBLIC_KEY)
       });
-      await api('/api/push/subscribe', { method: 'POST', body: { subscription: sub.toJSON() } });
-      toast('通知已开启！有新答卷会提醒你');
-      renderDashboard();
+      await api('/api/push/subscribe', { method: 'POST', body: { subscription: sub.toJSON(), device: fmtUA() } });
+      toast('通知已开启！');
+      renderSettings();
     } catch (e) {
       toast('开启失败：' + e.message, 'err');
     }

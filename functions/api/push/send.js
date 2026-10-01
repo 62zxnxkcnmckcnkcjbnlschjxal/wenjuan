@@ -23,7 +23,7 @@ async function importVapidPrivateKey() {
   const jwk = {
     kty: 'EC',
     crv: 'P-256',
-    d: VAPID_PRIVATE_KEY,
+    d: VAPID_PRIVATE,
     use: 'sig',
     alg: 'ES256'
   };

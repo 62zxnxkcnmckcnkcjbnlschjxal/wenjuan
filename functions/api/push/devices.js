@@ -4,19 +4,21 @@ import { json, error } from '../../_lib/util.js';
 export async function onRequestGet(ctx) {
   try {
     await ctx.env.DB.prepare(`CREATE TABLE IF NOT EXISTS push_subs (
-      endpoint TEXT PRIMARY KEY, sub TEXT NOT NULL, created_at INTEGER NOT NULL
+      endpoint TEXT PRIMARY KEY, sub TEXT NOT NULL, device TEXT DEFAULT '', created_at INTEGER NOT NULL
     )`).run();
-    const { results } = await ctx.env.DB.prepare('SELECT endpoint, sub, created_at FROM push_subs ORDER BY created_at DESC').all();
+    try { await ctx.env.DB.prepare('ALTER TABLE push_subs ADD COLUMN device TEXT DEFAULT ""').run(); } catch (e) {}
+    const { results } = await ctx.env.DB.prepare('SELECT endpoint, sub, device, created_at FROM push_subs ORDER BY created_at DESC').all();
     const devices = (results || []).map(r => {
       try {
         const sub = JSON.parse(r.sub);
         return {
           endpoint: r.endpoint,
+          device: r.device || '',
           created_at: r.created_at,
           endpoint_domain: (sub.endpoint || '').replace('https://', '').split('/')[0]
         };
       } catch (e) {
-        return { endpoint: r.endpoint, created_at: r.created_at, endpoint_domain: 'unknown' };
+        return { endpoint: r.endpoint, device: '', created_at: r.created_at, endpoint_domain: 'unknown' };
       }
     });
     return json({ ok: true, devices: devices });
