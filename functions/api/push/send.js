@@ -18,11 +18,17 @@ function bufToUrlBase64(buf) {
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-// 导入 VAPID 私钥用于 ES256 签名
+// 导入 VAPID 私钥用于 ES256 签名（必须用 JWK 格式，raw 格式不支持私钥签名）
 async function importVapidPrivateKey() {
-  const raw = urlBase64ToBuf(VAPID_PRIVATE);
+  const jwk = {
+    kty: 'EC',
+    crv: 'P-256',
+    d: VAPID_PRIVATE_KEY,
+    use: 'sig',
+    alg: 'ES256'
+  };
   return crypto.subtle.importKey(
-    'raw', raw, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']
+    'jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']
   );
 }
 

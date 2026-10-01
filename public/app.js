@@ -219,6 +219,9 @@
         const rs = $('#view-results'); if (rs) rs.style.display = 'block';
         openResults(m[2]);
       }
+    } else if (hash.startsWith('#/settings')) {
+      const sv = $('#view-settings'); if (sv) sv.style.display = 'block';
+      renderSettings();
     } else if (hash.startsWith('#/ai')) {
       const ai = $('#view-ai'); if (ai) ai.style.display = 'block';
       refreshAiStatus();
@@ -229,7 +232,7 @@
   }
 
   function hideAll() {
-    ['view-dashboard', 'view-ai', 'view-editor', 'view-results'].forEach(id => {
+    ['view-dashboard', 'view-ai', 'view-editor', 'view-results', 'view-settings'].forEach(id => {
       const el = $('#' + id);
       if (el) el.style.display = 'none';
     });
@@ -255,25 +258,6 @@
       statCard('green', '🚀', published.length, '发布中') +
       statCard('warn', '📥', totalResponses, '已回收答卷') +
       statCard('soft', '✏️', list.filter(s => s.status === 'draft').length, '草稿');
-
-    // 推送通知开关
-    const notifyBox = document.getElementById('notifyBar');
-    if (notifyBox) {
-      const supported = (typeof Notification !== 'undefined') && ('serviceWorker' in navigator) && ('PushManager' in window);
-      const status = supported ? Notification.permission : 'unsupported';
-      let btnHtml = '';
-      if (!supported) {
-        btnHtml = '<span style="color:var(--muted);font-size:13px">⚠️ 需 iPhone Safari 添加到主屏幕后开启</span>';
-      } else if (status === 'granted') {
-        btnHtml = '<span style="color:var(--green);font-size:13px">🔔 已开启</span> <button class="btn btn-sm" onclick="App.testPush()">测试推送</button>';
-      } else if (status === 'denied') {
-        btnHtml = '<span style="color:var(--danger);font-size:13px">🔕 通知被拒绝</span>';
-      } else {
-        btnHtml = '<button class="btn btn-primary btn-sm" onclick="App.enableNotify()">🔔 开启新答卷通知</button>';
-      }
-      notifyBox.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:16px">' +
-        '<span style="font-size:14px;font-weight:600">📱 新答卷提醒</span>' + btnHtml + '</div>';
-    }
 
     const box = $('#surveyList');
     if (!list.length) {
@@ -1108,6 +1092,51 @@
   }
 
   /* ---------------- 对外 ---------------- */
+  // ===== 设置页：推送设备管理 =====
+  async function renderSettings() {
+    const statusEl = document.getElementById('pushStatus');
+    const listEl = document.getElementById('deviceList');
+    if (!statusEl) return;
+
+    const supported = (typeof Notification !== 'undefined') && ('serviceWorker' in navigator) && ('PushManager' in window);
+    const status = supported ? Notification.permission : 'unsupported';
+    if (!supported) {
+      statusEl.innerHTML = '<div style="color:var(--muted);font-size:13px">⚠️ 当前浏览器不支持推送，请用 iPhone Safari 添加到主屏幕后开启</div>';
+    } else if (status === 'granted') {
+      statusEl.innerHTML = '<div style="color:var(--green);font-size:13px">🔔 本机通知已开启</div>';
+    } else if (status === 'denied') {
+      statusEl.innerHTML = '<div style="color:var(--danger);font-size:13px">🔕 通知被拒绝，请在系统设置中开启</div>';
+    } else {
+      statusEl.innerHTML = '<div style="color:var(--muted);font-size:13px">点上面按钮开启通知</div>';
+    }
+
+    try {
+      const data = await api('/api/push/devices');
+      if (!data.devices || !data.devices.length) {
+        listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">还没有已订阅的设备</div>';
+        return;
+      }
+      listEl.innerHTML = data.devices.map((d, i) => {
+        const time = new Date(d.created_at).toLocaleString('zh-CN', { hour12: false });
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">' +
+          '<div><div style="font-size:13px;font-weight:600">设备 ' + (i+1) + '</div>' +
+          '<div style="font-size:12px;color:var(--muted)">' + d.endpoint_domain + ' · ' + time + '</div></div>' +
+          '<button class="btn btn-danger-soft btn-sm" onclick="App.removeDevice(\'' + d.endpoint.replace(/'/g, "\\'") + '\')">删除</button></div>';
+      }).join('');
+    } catch (e) {
+      listEl.innerHTML = '<div style="color:var(--danger);font-size:13px">加载失败：' + e.message + '</div>';
+    }
+  }
+
+  async function removeDevice(endpoint) {
+    if (!confirm('确定删除这个设备的推送订阅？')) return;
+    try {
+      await api('/api/push/devices', { method: 'DELETE', body: { endpoint } });
+      toast('已删除');
+      renderSettings();
+    } catch (e) { toast('删除失败：' + e.message, 'err'); }
+  }
+
   // ===== Web Push 通知 =====
   const VAPID_PUBLIC_KEY = 'BP00uHKqQ_AN9U07z2bDAjdXoW7q9NruGAYkPGY0z7aMC2A6oGiBKi11P_qTzrzoL657yeNR9IeWH0qFa4OkJes';
 
@@ -1155,7 +1184,8 @@
     copyFillLink,
     openFillPage,
     enableNotify,
-    testPush
+    testPush,
+    removeDevice
   };
 
   document.addEventListener('DOMContentLoaded', boot);

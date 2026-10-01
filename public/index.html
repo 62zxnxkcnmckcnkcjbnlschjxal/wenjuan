@@ -30,7 +30,7 @@
         <span>问卷工作台</span>
       </div>
       <div class="header-spacer"></div>
-      <button class="btn btn-ghost btn-sm hide-sm" id="navAiBtn" onclick="location.hash='#/ai'">✨ AI 生成</button>
+      <button class="btn btn-ghost btn-sm hide-sm" id="navSettingsBtn" onclick="location.hash='#/settings'">⚙️ 设置</button>
       <button class="btn btn-ghost btn-sm" id="navHomeBtn" onclick="location.hash='#/'">问卷列表</button>
       <button class="icon-btn" id="themeToggle" title="切换深浅色">◐</button>
     </div>
@@ -50,8 +50,29 @@
         </div>
       </div>
       <div class="stat-grid" id="statGrid"></div>
-      <div id="notifyBar"></div>
       <div id="surveyList"></div>
+    </section>
+
+    <!-- 设置页 -->
+    <section class="page" id="view-settings" style="display:none">
+      <div class="page-head">
+        <div>
+          <h1>设置</h1>
+          <div class="sub">推送通知设备管理</div>
+        </div>
+      </div>
+      <div class="card card-pad" style="margin-bottom:16px">
+        <h3 style="margin:0 0 8px">🔔 推送通知</h3>
+        <div id="pushStatus"></div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="App.enableNotify()">开启通知</button>
+          <button class="btn btn-soft btn-sm" onclick="App.testPush()">发送测试推送</button>
+        </div>
+      </div>
+      <div class="card card-pad">
+        <h3 style="margin:0 0 12px">📱 已订阅设备</h3>
+        <div id="deviceList"></div>
+      </div>
     </section>
 
     <!-- AI 生成 -->
