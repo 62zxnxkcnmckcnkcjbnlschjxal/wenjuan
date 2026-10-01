@@ -1098,38 +1098,13 @@
     const listEl = document.getElementById('deviceList');
     if (!statusEl) return;
 
-    const supported = (typeof Notification !== 'undefined') && ('serviceWorker' in navigator) && ('PushManager' in window);
-    const status = supported ? Notification.permission : 'unsupported';
-    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-    if (!supported) {
-      statusEl.innerHTML = '<div style="color:var(--muted);font-size:13px">⚠️ 当前浏览器不支持推送</div>';
-    } else if (!isStandalone) {
-      statusEl.innerHTML = '<div style="color:#e67e22;font-size:13px">⚠️ 你现在在 Safari 浏览器里，必须添加到主屏幕后从图标打开才能收通知</div>';
-    } else if (status === 'granted') {
-      statusEl.innerHTML = '<div style="color:var(--green);font-size:13px">🔔 PWA 模式，通知已开启</div>';
-    } else if (status === 'denied') {
-      statusEl.innerHTML = '<div style="color:var(--danger);font-size:13px">🔕 通知被拒绝</div>';
-    } else {
-      statusEl.innerHTML = '<div style="color:var(--muted);font-size:13px">点上面按钮开启</div>';
-    }
+    const supported = true;
+    const statusEl = document.getElementById('pushStatus');
+    const listEl = document.getElementById('deviceList');
+    if (!statusEl) return;
 
-    try {
-      const data = await api('/api/push/devices');
-      if (!data.devices || !data.devices.length) {
-        listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">还没有已订阅的设备</div>';
-        return;
-      }
-      listEl.innerHTML = data.devices.map((d, i) => {
-        const time = new Date(d.created_at).toLocaleString('zh-CN', { hour12: false });
-        const devName = d.device || d.endpoint_domain || '未知设备';
-        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">' +
-          '<div><div style="font-size:13px;font-weight:600">📱 ' + devName + '</div>' +
-          '<div style="font-size:12px;color:var(--muted)">' + d.endpoint_domain + ' · ' + time + '</div></div>' +
-          '<button class="btn btn-danger-soft btn-sm" onclick="App.removeDevice(\'' + d.endpoint.replace(/'/g, "\\'") + '\')">删除</button></div>';
-      }).join('');
-    } catch (e) {
-      listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">设备列表加载中或接口未就绪…</div>';
-    }
+    statusEl.innerHTML = '<div style="color:var(--green);font-size:13px">🔔 Bark 推送已配置，新答卷会自动通知你</div>';
+    if (listEl) listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Bark 推送到你 iPhone，无需设备管理</div>';
   }
 
   async function removeDevice(endpoint) {
