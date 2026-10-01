@@ -1100,14 +1100,17 @@
 
     const supported = (typeof Notification !== 'undefined') && ('serviceWorker' in navigator) && ('PushManager' in window);
     const status = supported ? Notification.permission : 'unsupported';
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
     if (!supported) {
-      statusEl.innerHTML = '<div style="color:var(--muted);font-size:13px">⚠️ 当前浏览器不支持推送，请用 iPhone Safari 添加到主屏幕后开启</div>';
+      statusEl.innerHTML = '<div style="color:var(--muted);font-size:13px">⚠️ 当前浏览器不支持推送</div>';
+    } else if (!isStandalone) {
+      statusEl.innerHTML = '<div style="color:#e67e22;font-size:13px">⚠️ 你现在在 Safari 浏览器里，必须添加到主屏幕后从图标打开才能收通知</div>';
     } else if (status === 'granted') {
-      statusEl.innerHTML = '<div style="color:var(--green);font-size:13px">🔔 本机通知已开启</div>';
+      statusEl.innerHTML = '<div style="color:var(--green);font-size:13px">🔔 PWA 模式，通知已开启</div>';
     } else if (status === 'denied') {
-      statusEl.innerHTML = '<div style="color:var(--danger);font-size:13px">🔕 通知被拒绝，请在系统设置中开启</div>';
+      statusEl.innerHTML = '<div style="color:var(--danger);font-size:13px">🔕 通知被拒绝</div>';
     } else {
-      statusEl.innerHTML = '<div style="color:var(--muted);font-size:13px">点上面按钮开启通知</div>';
+      statusEl.innerHTML = '<div style="color:var(--muted);font-size:13px">点上面按钮开启</div>';
     }
 
     try {
@@ -1170,11 +1173,15 @@
   async function enableNotify() {
     try {
       if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) { toast('此浏览器不支持通知', 'err'); return; }
+      const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+      if (!isStandalone) {
+        toast('⚠️ 请先 Safari 分享 → 添加到主屏幕，从主屏幕图标打开后再开启通知', 'err');
+        return;
+      }
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') { toast('通知权限被拒绝', 'err'); return; }
-      const reg = await navigator.serviceWorker.register('/sw.js?v=2');
+      const reg = await navigator.serviceWorker.register('/sw.js?v=3');
       await navigator.serviceWorker.ready;
-      // 强制重新订阅（先删旧的再建新的），避免 D1 里没记录但浏览器以为已订阅
       const existing = await reg.pushManager.getSubscription();
       if (existing) await existing.unsubscribe();
       const sub = await reg.pushManager.subscribe({
