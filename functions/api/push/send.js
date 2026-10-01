@@ -123,21 +123,25 @@ async function sendPush(sub, payloadStr) {
   const endpoint = sub.endpoint;
   const url = new URL(endpoint);
   const audience = url.protocol + '//' + url.host;
-  const jwt = await createVapidJwt(audience);
-  const encrypted = await encryptPayload(sub, payloadStr);
-
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Authorization': 'vapid t=' + jwt + ', k=' + VAPID_PUBLIC,
-      'Content-Type': 'application/octet-stream',
-      'Content-Encoding': 'aes128gcm',
-      'TTL': '86400',
-      'Urgency': 'normal'
-    },
-    body: encrypted
-  });
-  return res.status;
+  try {
+    const jwt = await createVapidJwt(audience);
+    const encrypted = await encryptPayload(sub, payloadStr);
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'vapid t=' + jwt + ', k=' + VAPID_PUBLIC,
+        'Content-Type': 'application/octet-stream',
+        'Content-Encoding': 'aes128gcm',
+        'TTL': '86400',
+        'Urgency': 'normal'
+      },
+      body: encrypted
+    });
+    const respBody = await res.text().catch(() => '');
+    return { status: res.status, body: respBody };
+  } catch (e) {
+    return { status: -1, body: e.message };
+  }
 }
 
 export async function onRequestPost(ctx) {
@@ -156,15 +160,21 @@ export async function onRequestPost(ctx) {
     // 读所有订阅
     const { results } = await ctx.env.DB.prepare('SELECT endpoint, sub FROM push_subs').all();
     let success = 0, fail = 0;
+    const details = [];
     for (const row of (results || [])) {
       try {
         const sub = JSON.parse(row.sub);
-        const status = await sendPush(sub, payload);
-        if (status >= 200 && status < 300) success++;
-        else { fail++; if (status === 404 || status === 410) await ctx.env.DB.prepare('DELETE FROM push_subs WHERE endpoint=?').bind(row.endpoint).run(); }
-      } catch (e) { fail++; }
+        const r = await sendPush(sub, payload);
+        if (r.status >= 200 && r.status < 300) {
+          success++;
+        } else {
+          fail++;
+          details.push(r.status + ': ' + (r.body || '').slice(0, 200));
+          if (r.status === 404 || r.status === 410) await ctx.env.DB.prepare('DELETE FROM push_subs WHERE endpoint=?').bind(row.endpoint).run();
+        }
+      } catch (e) { fail++; details.push('异常: ' + e.message); }
     }
-    return json({ ok: true, sent: success, failed: fail });
+    return json({ ok: true, sent: success, failed: fail, details: details });
   } catch (e) {
     return error('发送失败：' + e.message, 500);
   }

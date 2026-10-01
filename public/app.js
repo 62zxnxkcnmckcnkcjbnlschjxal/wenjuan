@@ -1139,7 +1139,8 @@
   async function testPush() {
     try {
       const res = await api('/api/push/send', { method: 'POST', body: { title: '测试通知', body: '这是一条测试推送，如果你看到说明推送通了！' } });
-      toast('测试推送已发送：成功 ' + (res.sent||0) + ' / 失败 ' + (res.failed||0));
+      const d = (res.details && res.details.length) ? '\n' + res.details.join('\n') : '';
+      toast('成功 ' + (res.sent||0) + ' / 失败 ' + (res.failed||0) + d);
     } catch (e) {
       toast('测试失败：' + e.message, 'err');
     }
