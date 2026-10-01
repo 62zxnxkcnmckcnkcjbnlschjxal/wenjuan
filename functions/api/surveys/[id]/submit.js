@@ -52,6 +52,22 @@ export async function onRequestPost(ctx) {
 
     await addResponse(ctx.env, survey.id, answers, { ip, ua, location });
     const tip = (survey.settings && survey.settings.submitTip) || '提交成功，感谢参与！';
+
+    // 触发 Web Push 通知（异步，不阻塞响应）
+    ctx.waitUntil((async () => {
+      try {
+        await fetch(new URL('/api/push/send', ctx.request.url).toString(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: '新答卷提交',
+            body: '问卷「' + survey.title + '」收到一份新提交（' + location + '）',
+            url: '/#/results/' + survey.id
+          })
+        });
+      } catch (e) {}
+    })());
+
     return json({ ok: true, message: tip });
   } catch (e) {
     return error('提交失败：' + e.message, 500);

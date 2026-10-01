@@ -256,6 +256,25 @@
       statCard('warn', '📥', totalResponses, '已回收答卷') +
       statCard('soft', '✏️', list.filter(s => s.status === 'draft').length, '草稿');
 
+    // 推送通知开关
+    const notifyBox = document.getElementById('notifyBar');
+    if (notifyBox) {
+      const supported = ('Notification' in window) && ('serviceWorker' in navigator) && ('PushManager' in window);
+      const status = Notification.permission;
+      let btnHtml = '';
+      if (!supported) {
+        btnHtml = '<span style="color:var(--muted);font-size:13px">⚠️ 当前浏览器不支持推送（需 Safari 添加到主屏幕后使用）</span>';
+      } else if (status === 'granted') {
+        btnHtml = '<span style="color:var(--green);font-size:13px">🔔 通知已开启，有新答卷会提醒你</span>';
+      } else if (status === 'denied') {
+        btnHtml = '<span style="color:var(--danger);font-size:13px">🔕 通知被拒绝，请在浏览器设置中手动开启</span>';
+      } else {
+        btnHtml = '<button class="btn btn-primary btn-sm" onclick="App.enableNotify()">🔔 开启新答卷通知</button>';
+      }
+      notifyBox.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:16px">' +
+        '<span style="font-size:14px;font-weight:600">📱 新答卷提醒</span>' + btnHtml + '</div>';
+    }
+
     const box = $('#surveyList');
     if (!list.length) {
       box.innerHTML =
@@ -1089,6 +1108,34 @@
   }
 
   /* ---------------- 对外 ---------------- */
+  // ===== Web Push 通知 =====
+  const VAPID_PUBLIC_KEY = 'BP00uHKqQ_AN9U07z2bDAjdXoW7q9NruGAYkPGY0z7aMC2A6oGiBKi11P_qTzrzoL657yeNR9IeWH0qFa4OkJes';
+
+  function urlBase64ToBuf(b64) {
+    b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  }
+
+  async function enableNotify() {
+    try {
+      if (!('Notification' in window)) { toast('此浏览器不支持通知', 'err'); return; }
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { toast('通知权限被拒绝', 'err'); return; }
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToBuf(VAPID_PUBLIC_KEY)
+      });
+      await api('/api/push/subscribe', { method: 'POST', body: { subscription: sub.toJSON() } });
+      toast('通知已开启！有新答卷会提醒你');
+      renderDashboard();
+    } catch (e) {
+      toast('开启失败：' + e.message, 'err');
+    }
+  }
+
   window.App = {
     createBlank,
     aiGenerate,
@@ -1096,7 +1143,8 @@
     publishSurvey,
     closeSurvey,
     copyFillLink,
-    openFillPage
+    openFillPage,
+    enableNotify
   };
 
   document.addEventListener('DOMContentLoaded', boot);
