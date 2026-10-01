@@ -62,10 +62,14 @@
         </div>
       </div>
       <div class="card card-pad" style="margin-bottom:16px">
-        <h3 style="margin:0 0 8px">🔔 推送通知</h3>
+        <h3 style="margin:0 0 8px">🔔 Bark 推送通知</h3>
         <div id="pushStatus"></div>
+        <label class="field" style="margin-top:12px">
+          <span class="f-label">Bark Key（从 Bark App 复制）</span>
+          <input class="input" type="text" id="barkKeyInput" placeholder="例如 BjuWCVgpVz24iCEm36LCTC">
+        </label>
         <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-          <button class="btn btn-primary btn-sm" onclick="App.enableNotify()">开启通知</button>
+          <button class="btn btn-primary btn-sm" onclick="App.saveBarkKey()">保存 Key</button>
           <button class="btn btn-soft btn-sm" onclick="App.testPush()">发送测试推送</button>
         </div>
       </div>

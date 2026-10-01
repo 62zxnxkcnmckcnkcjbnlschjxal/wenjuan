@@ -1,8 +1,13 @@
 // POST /api/push/send — 通过 Bark 发送推送通知
 import { json, error, readBody } from '../../_lib/util.js';
 
-const BARK_KEY = 'BjuWCVgpVz24iCEm36LCTC';
-const BARK_URL = 'https://api.day.app/' + BARK_KEY;
+async function getBarkKey(env) {
+  try {
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS push_config (key TEXT PRIMARY KEY, value TEXT)`).run();
+    const row = await env.DB.prepare("SELECT value FROM push_config WHERE key='bark_key'").first();
+    return row ? row.value : '';
+  } catch (e) { return ''; }
+}
 
 export async function onRequestPost(ctx) {
   try {
@@ -10,7 +15,10 @@ export async function onRequestPost(ctx) {
     const title = (body && body.title) || '问卷新提交';
     const msgBody = (body && body.body) || '有人填写了你的问卷！';
 
-    const res = await fetch(BARK_URL, {
+    const barkKey = await getBarkKey(ctx.env);
+    if (!barkKey) return json({ ok: false, error: '未配置 Bark Key' });
+
+    const res = await fetch('https://api.day.app/' + barkKey, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

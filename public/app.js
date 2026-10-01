@@ -1105,6 +1105,24 @@
 
     statusEl.innerHTML = '<div style="color:var(--green);font-size:13px">🔔 Bark 推送已配置，新答卷会自动通知你</div>';
     if (listEl) listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Bark 推送到你 iPhone，无需设备管理</div>';
+
+    // 加载已保存的 Bark Key
+    try {
+      const cfg = await api('/api/push/config');
+      const inp = document.getElementById('barkKeyInput');
+      if (inp && cfg.barkKey) inp.value = cfg.barkKey;
+    } catch (e) {}
+  }
+
+  async function saveBarkKey() {
+    const inp = document.getElementById('barkKeyInput');
+    const key = inp ? inp.value.trim() : '';
+    if (!key) { toast('请输入 Bark Key', 'err'); return; }
+    try {
+      await api('/api/push/config', { method: 'POST', body: { barkKey: key } });
+      toast('Bark Key 已保存');
+    } catch (e) { toast('保存失败：' + e.message, 'err'); }
+  }
   }
 
   async function removeDevice(endpoint) {
@@ -1191,7 +1209,8 @@
     openFillPage,
     enableNotify,
     testPush,
-    removeDevice
+    removeDevice,
+    saveBarkKey
   };
 
   document.addEventListener('DOMContentLoaded', boot);
