@@ -1098,11 +1098,6 @@
     const listEl = document.getElementById('deviceList');
     if (!statusEl) return;
 
-    const supported = true;
-    const statusEl = document.getElementById('pushStatus');
-    const listEl = document.getElementById('deviceList');
-    if (!statusEl) return;
-
     statusEl.innerHTML = '<div style="color:var(--green);font-size:13px">🔔 Bark 推送已配置</div>';
 
     // 加载设备列表
@@ -1134,7 +1129,6 @@
       document.getElementById('barkRemarkInput').value = '';
       renderSettings();
     } catch (e) { toast('添加失败：' + e.message, 'err'); }
-  }
   }
 
   async function removeDevice(id) {
