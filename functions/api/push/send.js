@@ -49,24 +49,30 @@ async function createVapidJwt(audience) {
   const signingInput = enc.encode(headerB64 + '.' + payloadB64);
   const key = await importVapidPrivateKey();
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, signingInput);
-  // DER -> raw (r||s, 各32字节)，正确处理前导0
-  const der = new Uint8Array(sig);
-  // DER: 0x30 len | 0x02 rlen rvalue | 0x02 slen svalue
-  let offset = 2;
-  // r
-  const rLen = der[offset + 1];
-  let rStart = offset + 2;
-  let r = der.slice(rStart, rStart + rLen);
-  if (r.length > 32) r = r.slice(1); // 去掉前导0
-  if (r.length < 32) { const pad = new Uint8Array(32 - r.length); r = new Uint8Array([...pad, ...r]); }
-  offset = rStart + rLen;
-  // s
-  const sLen = der[offset + 1];
-  let sStart = offset + 2;
-  let s = der.slice(sStart, sStart + sLen);
-  if (s.length > 32) s = s.slice(1);
-  if (s.length < 32) { const pad = new Uint8Array(32 - s.length); s = new Uint8Array([...pad, ...s]); }
-  return headerB64 + '.' + payloadB64 + '.' + bufToUrlBase64(new Uint8Array([...r, ...s]));
+  // CF Workers 返回 raw 格式（r||s 各32字节，共64字节），直接用
+  // 标准 Web Crypto 返回 DER 格式，需要解析转换
+  let rawSig;
+  const sigBytes = new Uint8Array(sig);
+  if (sigBytes.length === 64) {
+    // 已经是 raw 格式
+    rawSig = sigBytes;
+  } else {
+    // DER 格式：0x30 len | 0x02 rlen rvalue | 0x02 slen svalue
+    let offset = 2;
+    const rLen = sigBytes[offset + 1];
+    let rStart = offset + 2;
+    let r = sigBytes.slice(rStart, rStart + rLen);
+    if (r.length > 32) r = r.slice(1);
+    if (r.length < 32) { const pad = new Uint8Array(32 - r.length); r = new Uint8Array([...pad, ...r]); }
+    offset = rStart + rLen;
+    const sLen = sigBytes[offset + 1];
+    let sStart = offset + 2;
+    let s = sigBytes.slice(sStart, sStart + sLen);
+    if (s.length > 32) s = s.slice(1);
+    if (s.length < 32) { const pad = new Uint8Array(32 - s.length); s = new Uint8Array([...pad, ...s]); }
+    rawSig = new Uint8Array([...r, ...s]);
+  }
+  return headerB64 + '.' + payloadB64 + '.' + bufToUrlBase64(rawSig);
 }
 
 // 加密 payload (aes128gcm, RFC 8291)
