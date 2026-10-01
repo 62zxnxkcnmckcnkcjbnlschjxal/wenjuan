@@ -60,8 +60,8 @@ export async function onRequestPost(ctx) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: '新答卷提交',
-            body: '问卷「' + survey.title + '」收到一份新提交（' + location + '）',
+            title: survey.title + ' · 有人填写了',
+            body: '来自 ' + location,
             url: '/#/results/' + survey.id
           })
         });
