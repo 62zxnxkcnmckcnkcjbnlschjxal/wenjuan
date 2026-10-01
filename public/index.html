@@ -65,13 +65,19 @@
         <h3 style="margin:0 0 8px">🔔 Bark 推送通知</h3>
         <div id="pushStatus"></div>
         <label class="field" style="margin-top:12px">
-          <span class="f-label">Bark Key（从 Bark App 复制）</span>
-          <input class="input" type="text" id="barkKeyInput" placeholder="例如 BjuWCVgpVz24iCEm36LCTC">
+          <span class="f-label">Bark Key</span>
+          <input class="input" type="text" id="barkKeyInput" placeholder="从 Bark App 复制">
+        </label>
+        <label class="field" style="margin-top:8px">
+          <span class="f-label">备注（如 iPhone）</span>
+          <input class="input" type="text" id="barkRemarkInput" placeholder="给这个设备起个名字">
         </label>
         <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-          <button class="btn btn-primary btn-sm" onclick="App.saveBarkKey()">保存 Key</button>
+          <button class="btn btn-primary btn-sm" onclick="App.addBarkDevice()">添加设备</button>
           <button class="btn btn-soft btn-sm" onclick="App.testPush()">发送测试推送</button>
         </div>
+        <h4 style="margin:16px 0 8px;font-size:14px">已订阅设备</h4>
+        <div id="deviceList"></div>
       </div>
       <div class="card card-pad">
         <h3 style="margin:0 0 12px">📱 已订阅设备</h3>

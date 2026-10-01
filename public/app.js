@@ -1103,32 +1103,44 @@
     const listEl = document.getElementById('deviceList');
     if (!statusEl) return;
 
-    statusEl.innerHTML = '<div style="color:var(--green);font-size:13px">🔔 Bark 推送已配置，新答卷会自动通知你</div>';
-    if (listEl) listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">Bark 推送到你 iPhone，无需设备管理</div>';
+    statusEl.innerHTML = '<div style="color:var(--green);font-size:13px">🔔 Bark 推送已配置</div>';
 
-    // 加载已保存的 Bark Key
+    // 加载设备列表
     try {
-      const cfg = await api('/api/push/config');
-      const inp = document.getElementById('barkKeyInput');
-      if (inp && cfg.barkKey) inp.value = cfg.barkKey;
-    } catch (e) {}
+      const data = await api('/api/push/devices');
+      if (!data.devices || !data.devices.length) {
+        listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">还没有设备，先添加一个吧</div>';
+        return;
+      }
+      listEl.innerHTML = data.devices.map(d =>
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">' +
+        '<div><div style="font-size:13px;font-weight:600">📱 ' + d.remark + '</div>' +
+        '<div style="font-size:12px;color:var(--muted)">' + d.barkKey + '</div></div>' +
+        '<button class="btn btn-danger-soft btn-sm" onclick="App.removeDevice(' + d.id + ')">删除</button></div>'
+      ).join('');
+    } catch (e) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">加载中…</div>';
+    }
   }
 
-  async function saveBarkKey() {
-    const inp = document.getElementById('barkKeyInput');
-    const key = inp ? inp.value.trim() : '';
+  async function addBarkDevice() {
+    const key = document.getElementById('barkKeyInput').value.trim();
+    const remark = document.getElementById('barkRemarkInput').value.trim() || '未命名';
     if (!key) { toast('请输入 Bark Key', 'err'); return; }
     try {
-      await api('/api/push/config', { method: 'POST', body: { barkKey: key } });
-      toast('Bark Key 已保存');
-    } catch (e) { toast('保存失败：' + e.message, 'err'); }
+      await api('/api/push/devices', { method: 'POST', body: { barkKey: key, remark } });
+      toast('已添加：' + remark);
+      document.getElementById('barkKeyInput').value = '';
+      document.getElementById('barkRemarkInput').value = '';
+      renderSettings();
+    } catch (e) { toast('添加失败：' + e.message, 'err'); }
   }
   }
 
-  async function removeDevice(endpoint) {
-    if (!confirm('确定删除这个设备的推送订阅？')) return;
+  async function removeDevice(id) {
+    if (!confirm('确定删除这个设备？')) return;
     try {
-      await api('/api/push/devices', { method: 'DELETE', body: { endpoint } });
+      await api('/api/push/devices?id=' + id, { method: 'DELETE' });
       toast('已删除');
       renderSettings();
     } catch (e) { toast('删除失败：' + e.message, 'err'); }
@@ -1210,7 +1222,7 @@
     enableNotify,
     testPush,
     removeDevice,
-    saveBarkKey
+    addBarkDevice
   };
 
   document.addEventListener('DOMContentLoaded', boot);
