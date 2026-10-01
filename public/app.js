@@ -259,15 +259,15 @@
     // 推送通知开关
     const notifyBox = document.getElementById('notifyBar');
     if (notifyBox) {
-      const supported = ('Notification' in window) && ('serviceWorker' in navigator) && ('PushManager' in window);
-      const status = Notification.permission;
+      const supported = (typeof Notification !== 'undefined') && ('serviceWorker' in navigator) && ('PushManager' in window);
+      const status = supported ? Notification.permission : 'unsupported';
       let btnHtml = '';
       if (!supported) {
-        btnHtml = '<span style="color:var(--muted);font-size:13px">⚠️ 当前浏览器不支持推送（需 Safari 添加到主屏幕后使用）</span>';
+        btnHtml = '<span style="color:var(--muted);font-size:13px">⚠️ 需 iPhone Safari 添加到主屏幕后开启</span>';
       } else if (status === 'granted') {
-        btnHtml = '<span style="color:var(--green);font-size:13px">🔔 通知已开启，有新答卷会提醒你</span>';
+        btnHtml = '<span style="color:var(--green);font-size:13px">🔔 已开启</span> <button class="btn btn-sm" onclick="App.testPush()">测试推送</button>';
       } else if (status === 'denied') {
-        btnHtml = '<span style="color:var(--danger);font-size:13px">🔕 通知被拒绝，请在浏览器设置中手动开启</span>';
+        btnHtml = '<span style="color:var(--danger);font-size:13px">🔕 通知被拒绝</span>';
       } else {
         btnHtml = '<button class="btn btn-primary btn-sm" onclick="App.enableNotify()">🔔 开启新答卷通知</button>';
       }
@@ -1136,6 +1136,15 @@
     }
   }
 
+  async function testPush() {
+    try {
+      const res = await api('/api/push/send', { method: 'POST', body: { title: '测试通知', body: '这是一条测试推送，如果你看到说明推送通了！' } });
+      toast('测试推送已发送：成功 ' + (res.sent||0) + ' / 失败 ' + (res.failed||0));
+    } catch (e) {
+      toast('测试失败：' + e.message, 'err');
+    }
+  }
+
   window.App = {
     createBlank,
     aiGenerate,
@@ -1144,7 +1153,8 @@
     closeSurvey,
     copyFillLink,
     openFillPage,
-    enableNotify
+    enableNotify,
+    testPush
   };
 
   document.addEventListener('DOMContentLoaded', boot);
