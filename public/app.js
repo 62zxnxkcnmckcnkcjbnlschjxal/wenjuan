@@ -1124,7 +1124,7 @@
           '<button class="btn btn-danger-soft btn-sm" onclick="App.removeDevice(\'' + d.endpoint.replace(/'/g, "\\'") + '\')">删除</button></div>';
       }).join('');
     } catch (e) {
-      listEl.innerHTML = '<div style="color:var(--danger);font-size:13px">加载失败：' + e.message + '</div>';
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">设备列表加载中或接口未就绪…</div>';
     }
   }
 
