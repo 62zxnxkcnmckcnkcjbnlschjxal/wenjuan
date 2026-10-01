@@ -85,7 +85,7 @@ async function encryptPayload(sub, plaintext) {
   const authSecret = urlBase64ToBuf(sub.keys.auth);
 
   const userPubKey = await crypto.subtle.importKey(
-    'raw', userPub, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveBits']
+    'raw', userPub, { name: 'ECDH', namedCurve: 'P-256' }, false, []
   );
 
   const ecdhBits = new Uint8Array(await crypto.subtle.deriveBits(
@@ -166,8 +166,9 @@ export async function onRequestPost(ctx) {
 
     // 确保表存在
     await ctx.env.DB.prepare(`CREATE TABLE IF NOT EXISTS push_subs (
-      endpoint TEXT PRIMARY KEY, sub TEXT NOT NULL, created_at INTEGER NOT NULL
+      endpoint TEXT PRIMARY KEY, sub TEXT NOT NULL, device TEXT DEFAULT '', created_at INTEGER NOT NULL
     )`).run();
+    try { await ctx.env.DB.prepare('ALTER TABLE push_subs ADD COLUMN device TEXT DEFAULT ""').run(); } catch (e) {}
 
     // 读所有订阅
     const { results } = await ctx.env.DB.prepare('SELECT endpoint, sub FROM push_subs').all();
